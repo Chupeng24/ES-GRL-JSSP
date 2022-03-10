@@ -158,8 +158,20 @@ class JSSPSimulator(gym.Env, EzPickle):
         return fea, adj, _, r, candidate, mask,done
 
     def process_one_time(self):
-        self.global_time += 1
-        self.machine_manager.do_processing(self.global_time)
+        # short_m = float('inf')
+        short_op = float('inf')
+
+        for _, machine in self.machine_manager.machines.items():
+            if machine.current_op != None:
+                if machine.remaining_time < short_op:
+                    short_op = machine.remaining_time
+
+        if self.mbrk_Ag:
+            shor_interval = 1
+        else:
+            shor_interval = int(short_op)
+        self.global_time += shor_interval
+        self.machine_manager.do_processing(self.global_time, shor_interval)
 
     def transit(self, action=None,disrule_name=None):
         if action is None and disrule_name is None:
@@ -278,7 +290,7 @@ class JSSPSimulator(gym.Env, EzPickle):
                 do_ops[v // self.num_steps] = v
         # candidate = np.empty(self.num_steps,dtype=np.int64)
         # do_ops_temp = do_ops//self.num_ops
-        i = 0
+        # i = 0
         for index, v in enumerate(do_ops):
             if v == -1:
                 do_ops[index] = 0

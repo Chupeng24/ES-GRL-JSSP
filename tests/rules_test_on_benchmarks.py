@@ -136,7 +136,8 @@ if __name__ == '__main__':
     np.random.seed(configs.np_seed_validation)
     random.seed(configs.python_seed)
     output_flag_1 = True
-    dispatching_rules_list = [None, "FIFO", "LIFO", "SPT", "LPT", "STPT", "LTPT", "LOR", "MOR", "MWKR", "FDD/MWKR"]
+    # dispatching_rules_list = [None, "FIFO", "LIFO", "SPT", "LPT", "STPT", "LTPT", "LOR", "MOR", "MWKR", "FDD/MWKR"]
+    dispatching_rules_list = [None, "FIFO", "LIFO", "SPT"]
     name_list = []
     for root, dirs, files in os.walk(parent_path + f'/benchmark', topdown=False):
         for name in files:

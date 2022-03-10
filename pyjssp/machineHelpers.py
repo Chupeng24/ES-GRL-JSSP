@@ -41,9 +41,9 @@ class MachineManager:
                                           mbrk_Ag,
                                           brk_rep_time_table)
 
-    def do_processing(self, t):
+    def do_processing(self, t, shor_interval):
         for _, machine in self.machines.items():
-            machine.do_processing(t)
+            machine.do_processing(t, shor_interval)
 
     def load_op(self, machine_id, op, t):
         self.machines[machine_id].load_op(op, t)
@@ -285,13 +285,14 @@ class Machine:
         self.current_op = None
         self.remaining_time = -1
 
-    def do_processing(self, t):
+    def do_processing(self, t, shor_interval):
         if self.mbrk_Ag:
             flag = 0
             origin_normal_flag = self.normal_flag
             for idx, val in enumerate(self.brk_rep_time_table[self.machine_id-1]): #machin_id start form 1
                 if t < val:
                     flag = idx
+                    self.trans_interval = val - t
                     break
             if flag % 2 == 0:
                 self.normal_flag = True
@@ -305,7 +306,7 @@ class Machine:
         if self.normal_flag:
             if self.remaining_time > 0:  # When machine do some operation
                 if self.current_op is not None:
-                    self.current_op.remaining_time -= 1
+                    self.current_op.remaining_time -= shor_interval
                     if self.current_op.remaining_time <= 0:
                         if self.current_op.remaining_time < 0:
                             raise RuntimeWarning("Negative remaining time observed")
@@ -318,12 +319,12 @@ class Machine:
                 #     print("have delayed op")
                 #     self.delayed_op.delayed_time += 1
                 #     self.delayed_op.remaining_time -= 1             #??????
-                self.remaining_time -= 1
+                self.remaining_time -= shor_interval
 
         doable_ops = self.doable_ops()
         if doable_ops:
             for op in doable_ops:
-                op.waiting_time += 1
+                op.waiting_time += shor_interval
         else:
             pass
 
