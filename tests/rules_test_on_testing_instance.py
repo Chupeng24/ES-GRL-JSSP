@@ -22,9 +22,9 @@ def test_on_single_instance(machine_matrix, processing_time_matrix,disrule_name=
               processing_time_matrix=proctime_matrix,
               proctime_std=2,
               sched_ratio=0.3,
-              proc_seed=1)
-              # mbrk_Ag=0.5,
-              # mbrk_seed=10)
+              proc_seed=1,
+              mbrk_Ag=0.5,
+              mbrk_seed=10)
     while True:
         if env.random_stop_flag == True:
             _, _, _, _, _,_, done = env.step(action=None,disrule_name=disrule_name)

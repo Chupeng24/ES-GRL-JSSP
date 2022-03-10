@@ -254,8 +254,8 @@ def main():
             n_m_list.append(n_m)
             n_j_list.append(n_j)
             proctime_matrix,m_matrix= data_generator(n_j=n_j, n_m=n_m, low=configs.low, high=configs.high)
-            np.random.seed(i_update*10+i)
-            # fea, adj, _, reward, candidate, mask,done  = env.reset(machine_matrix=m_matrix, processing_time_matrix=proctime_matrix,proctime_std=2,sched_ratio=0.3,mbrk_Ag=0.05,mbrk_seed=i_update*10+i+1)
+            # np.random.seed(i_update*10+i)
+            # fea, adj, _, reward, candidate, mask,done  = env.reset(machine_matrix=m_matrix, processing_time_matrix=proctime_matrix,proctime_std=2,proc_seed=i_update*20+i+1,sched_ratio=0.4,mbrk_Ag=0.05,mbrk_seed=i_update*10+i+1)
             fea, adj, _, reward, candidate, mask,done  = env.reset(machine_matrix=m_matrix, processing_time_matrix=proctime_matrix)
             g_pool_step = g_pool_cal(graph_pool_type=configs.graph_pool_type,  # graph_pool_type=average
                                      batch_size=torch.Size([1, n_j*n_m, n_j*n_m]),
@@ -351,3 +351,16 @@ if __name__ == '__main__':
     main()
     total2 = time.time()
     # print(total2 - total1)
+
+    # total1 = time.time()
+    # main()
+    # total2 = time.time()
+    # print(total2 - total1)
+    # main(10, 5)
+    # main(10, 10)
+    # main(15, 10)
+    # main(15, 15)
+    # main(20, 15)
+    # main(20, 20)
+    # main(30, 15)
+    # main(30, 20)

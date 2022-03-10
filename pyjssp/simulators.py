@@ -90,6 +90,7 @@ class JSSPSimulator(gym.Env, EzPickle):
         self.proctime_std = proctime_std
         if proctime_std:
             np.random.seed(proc_seed)
+            random.seed(proc_seed+10)
             self.prac_proc_time_matrix = np.random.normal(loc = self.processing_time_matrix,scale= self.proctime_std)
             for job_id,job in enumerate(self.prac_proc_time_matrix):
                 for step_id,_ in enumerate(job):
@@ -112,6 +113,7 @@ class JSSPSimulator(gym.Env, EzPickle):
         self.brk_rep_time_table = None
         if self.mbrk_Ag and mbrk_seed:
             np.random.seed(mbrk_seed)   # In order to create same machine breakdown situation
+            random.seed(mbrk_seed+10)
             MOPT = 50
             MTTR = self.mbrk_Ag* 100 * MOPT
             MTBF = ((1-self.mbrk_Ag)*MTTR)/self.mbrk_Ag
@@ -160,16 +162,23 @@ class JSSPSimulator(gym.Env, EzPickle):
     def process_one_time(self):
         # short_m = float('inf')
         short_op = float('inf')
+        short_m  = float('inf')
+
+        for _, machine in self.machine_manager.machines.items():
+            if hasattr(machine, 'trans_interval'):
+                if machine.trans_interval < short_m:
+                    short_m = machine.trans_interval
 
         for _, machine in self.machine_manager.machines.items():
             if machine.current_op != None:
                 if machine.remaining_time < short_op:
                     short_op = machine.remaining_time
 
-        if self.mbrk_Ag:
-            shor_interval = 1
-        else:
-            shor_interval = int(short_op)
+        # if self.mbrk_Ag:
+        #     shor_interval = 1
+        # else:
+        #     shor_interval = int(short_op)
+        shor_interval = int(min(short_m, short_op))
         self.global_time += shor_interval
         self.machine_manager.do_processing(self.global_time, shor_interval)
 
