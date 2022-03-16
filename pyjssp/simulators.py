@@ -62,7 +62,8 @@ class JSSPSimulator(gym.Env, EzPickle):
               proctime_std= 0,
               mbrk_Ag = 0,
               mbrk_seed=None,
-              proc_seed=None):
+              proc_seed=None,
+              sched_seed=None):
         if machine_matrix is None or processing_time_matrix is None and jssp_path is not None:
             ms,prts = self.from_path(jssp_path)
             self.machine_matrix = ms.astype(int)
@@ -80,13 +81,7 @@ class JSSPSimulator(gym.Env, EzPickle):
         self.scheduled_op = 0
         self.sched_ratio = sched_ratio
         self.random_stop_flag = True
-        if self.sched_ratio is not None and self.sched_ratio > 0:
-            self.random_stop_flag = False
-            self.random_op_sum = self.num_ops * self.sched_ratio
-            self.random_op_count = 0
-            self.random_action_index = 0
-            self.random_action_list = np.full(shape=(self.num_ops,),fill_value=np.nan)
-        # self._machine_set = list(set(self.machine_matrix.flatten().tolist()))
+
         self.proctime_std = proctime_std
         if proctime_std:
             np.random.seed(proc_seed)
@@ -147,6 +142,16 @@ class JSSPSimulator(gym.Env, EzPickle):
         # self.FDDMWKR = temp2 / temp3
         #
         # self.FDDMWKR = (self.FDDMWKR-np.mean(self.FDDMWKR))/np.std(self.FDDMWKR)
+
+        if self.sched_ratio is not None and self.sched_ratio > 0:
+            self.random_stop_flag = False
+            self.random_op_sum = self.num_ops * self.sched_ratio
+            self.random_op_count = 0
+            self.random_action_index = 0
+            self.random_action_list = np.full(shape=(self.num_ops,),fill_value=np.nan)
+            np.random.seed(sched_seed)  # In order to create same machine breakdown situation
+            random.seed(sched_seed + 10)
+        # self._machine_set = list(set(self.machine_matrix.flatten().tolist()))
 
         return self.observe()
 
@@ -459,9 +464,9 @@ class JSSPSimulator(gym.Env, EzPickle):
                               #prt_fea.reshape(self.num_ops, 1),
                               # com_fea.reshape(self.num_ops, 1)
                               node_status_fea.reshape(self.num_ops, 3)),axis=1)
-                              # rem_op_fea.reshape(self.num_ops, 1),
-                              # wait_time_fea.reshape(self.num_ops, 1)/np.max(wait_time_fea)), axis=1)
-                              # rem_time_fea.reshape(self.num_ops, 1)), axis=1)
+        # rem_op_fea.reshape(self.num_ops, 1),
+        # wait_time_fea.reshape(self.num_ops, 1)/np.max(wait_time_fea)), axis=1)
+        # rem_time_fea.reshape(self.num_ops, 1)), axis=1)
         candidate, undoable_mask = self.get_doable_ops(return_list=True)
         # update adj matrix
         for m_id,m in self.machine_manager.machines.items():

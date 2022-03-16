@@ -125,7 +125,7 @@ if __name__ == '__main__':
               hidden_dim_actor=configs.hidden_dim_actor,
               num_mlp_layers_critic=configs.num_mlp_layers_critic,
               hidden_dim_critic=configs.hidden_dim_critic)
-    path = './SavedNetwork/{}.pth'.format("mixed_training_1_99_02-27-22-02")
+    path = './SavedNetwork/{}.pth'.format("-n_j-10-n_m-10--same size training by ES-03-12-11-10")
     ppo.policy.load_state_dict(torch.load(path, map_location=torch.device('cpu')))
 
     # experiment_1: test on all benchmark
@@ -148,10 +148,7 @@ if __name__ == '__main__':
                         makespans.append(test_on_single_instance(benchname=benchmark,
                                                                  model=ppo,
                                                                  proctime_std=std,
-                                                                 proc_seed=idx + 10,
-                                                                 sched_ratio=0.4,
-                                                                 mbrk_Ag=0.05,
-                                                                 mbrk_seed=idx + 20))
+                                                                 proc_seed=idx + 10))
                     print(makespans)
                     if rule not in result_dict.keys():
                         result_dict[rule] = []

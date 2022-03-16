@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 from Params import configs
-from validation import validate
+# from validation import validate
 from pyjssp.simulators import JSSPSimulator
 import time
 import os
@@ -124,7 +124,7 @@ if __name__ == '__main__':
               hidden_dim_actor=configs.hidden_dim_actor,
               num_mlp_layers_critic=configs.num_mlp_layers_critic,
               hidden_dim_critic=configs.hidden_dim_critic)
-    path = './SavedNetwork/{}.pth'.format("mixed_training_1_99_01-27-22-59")
+    path = './SavedNetwork/{}.pth'.format("-n_j-10-n_m-10--same size training by ES-03-12-21-11")
     ppo.policy.load_state_dict(torch.load(path, map_location=torch.device('cpu')))
 
     # experiment_1: test on all benchmark

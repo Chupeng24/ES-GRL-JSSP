@@ -48,10 +48,10 @@ def test_on_all_instance(disrule_name=None,proctime_std=0,sched_ratio=None):
     return makespan_list
     #print("mean_makespan:",np.mean(makespan_list))
 
-def test_on_single_instance(benchname,disrule_name=None,proctime_std=0,proc_seed=None,sched_ratio=None,mbrk_Ag=None,mbrk_seed=None):
+def test_on_single_instance(benchname,disrule_name=None,proctime_std=0,proc_seed=None,sched_ratio=None,sched_seed = None, mbrk_Ag=None,mbrk_seed=None):
     env = JSSPSimulator(num_jobs=None, num_machines=None)
     env.reset(jssp_path=parent_path + f'/benchmark/{benchname}.txt',
-              proctime_std=proctime_std, proc_seed=proc_seed, sched_ratio=sched_ratio, mbrk_Ag=mbrk_Ag,
+              proctime_std=proctime_std, proc_seed=proc_seed, sched_ratio=sched_ratio, sched_seed = sched_seed, mbrk_Ag=mbrk_Ag,
               mbrk_seed=mbrk_seed)
     # env.reset(jssp_path='FT10.txt',proctime_std=0)
     #start_time = time.time()
@@ -175,8 +175,8 @@ if __name__ == '__main__':
                 makespans = []
                 for idx in range(50):
                     makespans.append(test_on_single_instance(benchname=benchmark,
-                                                             disrule_name=rule,proctime_std=std,proc_seed=idx+10,
-                                                             sched_ratio=0.4,mbrk_Ag=0.05,mbrk_seed=idx+20))
+                                                             disrule_name=rule,proctime_std=std,proc_seed=idx+10))
+                                                            # sched_ratio=0.4,mbrk_Ag=0.05,mbrk_seed=idx+20))
                 print(makespans)
                 if rule not in result_dict.keys():
                     result_dict[rule] = []
@@ -211,9 +211,7 @@ if __name__ == '__main__':
                 makespans = []
                 print("benchmark_name:",benchmark,",schedule ratio:",ratio,",dispatching rule:",rule)
                 for idx in range(50):
-                    makespans.append(test_on_single_instance(benchname=benchmark,
-                                                             disrule_name=rule, proctime_std=2, proc_seed=idx + 10,
-                                                             sched_ratio=ratio, mbrk_Ag=0.05, mbrk_seed=idx + 20))
+                    makespans.append(test_on_single_instance(benchname=benchmark, disrule_name=rule, sched_ratio=ratio, sched_seed=idx+10))
                 print(makespans)
                 detail_res_list[f'{benchmark}-{ratio}-{rule}'] = makespans
                 if rule not in result_dict.keys():
@@ -253,9 +251,7 @@ if __name__ == '__main__':
                 makespans = []
                 for idx in range(50):
                     makespans.append(test_on_single_instance(benchname=benchmark,
-                                                             disrule_name=rule, proctime_std=2,
-                                                             proc_seed=idx + 10,
-                                                             sched_ratio=0.4, mbrk_Ag=Ag, mbrk_seed=idx + 20))
+                                                             disrule_name=rule, mbrk_Ag=Ag, mbrk_seed=idx + 10))
                 print(makespans)
                 if rule not in result_dict.keys():
                     result_dict[rule] = []

@@ -29,8 +29,10 @@ random.seed(configs.python_seed)
 torch.manual_seed(configs.torch_seed)
 
 vali_data3 = []
-n_m = 15
-n_j = 20
+# n_m = np.random.randint(5, 10)
+# n_j = np.random.randint(n_m, 10)
+n_m = 10
+n_j = 10
 for i in range(100):
     proctime_matrix, m_matrix = data_generator(n_j=n_j, n_m=n_m, low=configs.low, high=configs.high)
     vali_data3.append((proctime_matrix, m_matrix))
@@ -50,15 +52,20 @@ class Net(nn.Module):
         return self.net(x)
 
 
-def evaluate(env, agent):
+def evaluate(env, agent, idx):
     # np.random.seed(configs.np_seed_train)
     # random.seed(configs.python_seed)
-    n_m = 15
-    n_j = 20
+    # n_m = np.random.randint(5, 10)
+    # n_j = np.random.randint(n_m, 10)
+    n_m = 10
+    n_j = 10
     data_generator = uni_instance_gen
     proctime_matrix, m_matrix = data_generator(n_j=n_j, n_m=n_m, low=configs.low, high=configs.high)
     # proctime_matrix, m_matrix = vali_data3[0]
     fea, adj, _, reward, candidate, mask, done = env.reset(machine_matrix=m_matrix, processing_time_matrix=proctime_matrix)
+
+    # fea, adj, _, reward, candidate, mask, done = env.reset(machine_matrix=m_matrix, processing_time_matrix=proctime_matrix,
+    #                                                        mbrk_Ag=0.05, mbrk_seed=idx+1)
     # fea, adj, _, reward, candidate, mask, done = env.reset(machine_matrix=m_matrix,
     #                                                        processing_time_matrix=proctime_matrix, proctime_std=2,
     #                                                        sched_ratio=0.3, mbrk_Ag=0.05,
@@ -89,6 +96,7 @@ def evaluate(env, agent):
         if done:
             makespan = env.global_time
             ep_r = -(makespan / np.sum(proctime_matrix))
+            # ep_r = (np.sum(proctime_matrix) / makespan)
             # ep_r = - float(makespan)
             break
     return ep_r, steps
@@ -114,7 +122,7 @@ def sample_noise(agent):
     return actor_net_pos, actor_net_neg, gnn_net_pos, gnn_net_neg
 
 
-def eval_with_noise(env, agent, actor_net_noise, gnn_net_noise):
+def eval_with_noise(env, agent, actor_net_noise, gnn_net_noise, idx):
     actor_net = agent.policy.actor
     gnn_net = agent.policy.feature_extract
     old_params_actor = actor_net.state_dict()
@@ -123,7 +131,7 @@ def eval_with_noise(env, agent, actor_net_noise, gnn_net_noise):
         p.data += NOISE_STD * p_n
     for p, p_n in zip(gnn_net.parameters(), gnn_net_noise):
         p.data += NOISE_STD * p_n
-    r, s = evaluate(env, agent)
+    r, s = evaluate(env, agent, idx)
     actor_net.load_state_dict(old_params_actor)
     gnn_net.load_state_dict(old_params_gnn)
     return r, s
@@ -164,7 +172,7 @@ if __name__ == "__main__":
     # set tensorboard
     tensorboard_enable = input("Whether the tensorboard is enabled:")
     TIMESTAMP = time.strftime("%m-%d-%H-%M", time.localtime(time.time()))
-    comment = "-same size training by ES-"
+    comment = input("comment:")
     if bool(tensorboard_enable):
         writer = SummaryWriter(
             log_dir=f'runs_multiInstance/' + TIMESTAMP +'-n_j-'+f'{n_j}'+'-n_m-'+f'{n_m}-'+comment)
@@ -204,16 +212,16 @@ if __name__ == "__main__":
         gnn_batch_noise = []
         batch_reward = []
         batch_steps = 0
-        for _ in range(MAX_BATCH_EPISODES):
+        for idx in range(MAX_BATCH_EPISODES):
             actor_net_pos, actor_net_neg, gnn_net_pos, gnn_net_neg = sample_noise(ppo)
             actor_batch_noise.append(actor_net_pos)
             actor_batch_noise.append(actor_net_neg)
             gnn_batch_noise.append(gnn_net_pos)
             gnn_batch_noise.append(gnn_net_neg)
-            reward, steps = eval_with_noise(env, ppo, actor_net_pos, gnn_net_pos)
+            reward, steps = eval_with_noise(env, ppo, actor_net_pos, gnn_net_pos, i_update + idx)
             batch_reward.append(reward)
             batch_steps += steps
-            reward, steps = eval_with_noise(env, ppo, actor_net_neg, gnn_net_neg)
+            reward, steps = eval_with_noise(env, ppo, actor_net_neg, gnn_net_neg, i_update + idx)
             batch_reward.append(reward)
             batch_steps += steps
 
@@ -221,12 +229,21 @@ if __name__ == "__main__":
 
         train_step(ppo, actor_batch_noise, gnn_batch_noise, batch_reward,
                    writer, i_update)
-        vali_result = validate(vali_data3, ppo.policy).mean()
-        print(vali_result)
+        if i_update < 500:
+            if i_update % 50 == 0:
+                vali_result = validate(vali_data3, ppo.policy).mean()
+                print(i_update,vali_result)
+                if tensorboard_enable:
+                    writer.add_scalar("vali_result", vali_result, i_update + 1)
+        else:
+            vali_result = validate(vali_data3, ppo.policy).mean()
+            print(i_update, vali_result)
+            if tensorboard_enable:
+                writer.add_scalar("vali_result", vali_result, i_update + 1)
+
+            # NOISE_STD = 0.025
         # for item in vali_result:
         #     print(item)
-        if tensorboard_enable:
-            writer.add_scalar("vali_result", vali_result, i_update + 1)
 
         if vali_result < record:
             torch.save(ppo.policy.state_dict(),

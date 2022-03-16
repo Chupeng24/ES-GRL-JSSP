@@ -94,7 +94,6 @@ def ES_train(agent, utility, env):
     jobs = [
         pool.apply_async(rollout, (env, agent, [noise_seed[k_id], k_id],)) for k_id in range(N_KID * 2)]
     rewards = np.array([j.get() for j in jobs])
-    rewards = np.array(rewards)
     rewards -= np.mean(rewards)
     s = np.std(rewards)
     if abs(s) > 1e-6:
@@ -206,17 +205,14 @@ if __name__ == '__main__':
     # for item in vali_result:
     #     print(item)
 
-    vali_result = vali_result.mean()
     if tensorboard_enable:
         writer.add_scalar("vali_result", vali_result, 0)
     record = vali_result
 
     # training
     t0 = time.time()
-    batch_noise = []
-    batch_reward = []
     for i_update in range(configs.max_updates):  # max_updates = 40000
-
+        np.random.seed(i_update)
         ES_train(ppo, utility, env)
         # if vali_result < record:
         #     torch.save(ppo.policy.state_dict(), './SavedNetwork/{}.pth'.format(

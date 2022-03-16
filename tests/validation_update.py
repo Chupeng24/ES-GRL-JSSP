@@ -25,6 +25,9 @@ def validate(vali_set, model):
         # np.random.seed(200)
         # fea, adj, _, reward, candidate, mask,done = env.reset(machine_matrix=m_matrix,processing_time_matrix=proctime_matrix,proctime_std=2, proc_seed=idx,sched_ratio=0.3,mbrk_Ag=0.05,mbrk_seed=idx+1)
         fea, adj, _, reward, candidate, mask,done = env.reset(machine_matrix=m_matrix,processing_time_matrix=proctime_matrix)
+        # fea, adj, _, reward, candidate, mask, done = env.reset(machine_matrix=m_matrix,
+        #                                                        processing_time_matrix=proctime_matrix,
+        #                                                        mbrk_Ag=0.05, mbrk_seed=10)
         # fea, adj, _, reward, candidate, mask,done = env.reset(data)
         rewards = 0
         while True:
@@ -84,7 +87,7 @@ if __name__ == '__main__':
     N_JOBS_N = params.Nn_j
     N_MACHINES_N = params.Nn_m
 
-    from PPO_jssp_singleInstances import PPO
+    from PPO_jssp_multiInstances_update import PPO
     import torch
 
     ppo = PPO(configs.lr, configs.gamma, configs.k_epochs, configs.eps_clip,
