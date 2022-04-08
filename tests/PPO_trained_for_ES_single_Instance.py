@@ -156,7 +156,8 @@ def train_step(agent, actor_batch_noise, gnn_batch_noise, batch_reward, writer, 
     #cm_updates = []
     for p, p_update in zip(actor_net.parameters(), weighted_noise):
         update = p_update / (len(batch_reward) * NOISE_STD)
-        p.data += LEARNING_RATE * update
+        # p.data += LEARNING_RATE * update
+        p.data = 0.9 * p.data +  0.1 * LEARNING_RATE * update
     weighted_noise = None
     # for noise, reward in zip(gnn_batch_noise, norm_reward):
     #     if weighted_noise is None:
@@ -174,7 +175,8 @@ def train_step(agent, actor_batch_noise, gnn_batch_noise, batch_reward, writer, 
                 w_n += util_value * p_n
     for p, p_update in zip(gnn_net.parameters(), weighted_noise):
         update = p_update / (len(batch_reward) * NOISE_STD)
-        p.data += LEARNING_RATE * update
+        # p.data += LEARNING_RATE * update
+        p.data = 0.9 * p.data +  0.1 * LEARNING_RATE * update
 
 if __name__ == "__main__":
     # set tensorboard

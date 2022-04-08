@@ -161,86 +161,86 @@ if __name__ == '__main__':
     # experiment_2: test on all benchmark with stochastic processing time
     # np.random.seed(configs.np_seed_validation)
     # random.seed(configs.python_seed)
-    output_flag_2 = True
-    dispatching_rules_list = [None, "FIFO", "LIFO", "SPT", "LPT", "STPT", "LTPT", "LOR", "MOR", "MWKR", "FDD/MWKR"]
-    proctime_std = [1, 2, 3]
-    benchmark_list = ["LA/la01", "FT/ft20","LA/la26","SWV/swv11"]
-    result_dict = {}
-    op_list = ["mean","max","min"]
-    index_list = []
-    for benchmark in benchmark_list:
-        for std in proctime_std:
-            for rule in dispatching_rules_list:
-                print("benchmark_name:",benchmark,",time std:",std,",dispatching rule:",rule)
-                makespans = []
-                for idx in range(50):
-                    makespans.append(test_on_single_instance(benchname=benchmark,
-                                                             disrule_name=rule,proctime_std=std,proc_seed=idx+10))
-                                                            # sched_ratio=0.4,mbrk_Ag=0.05,mbrk_seed=idx+20))
-                print(makespans)
-                if rule not in result_dict.keys():
-                    result_dict[rule] = []
-                mean_mp, max_mp, min_mp = np.mean(makespans), np.max(makespans), np.min(makespans)
-                result_dict[rule].append(mean_mp)
-                result_dict[rule].append(max_mp)
-                result_dict[rule].append(min_mp)
-                print(np.mean(makespans),'\n',np.max(makespans),'\n',np.min(makespans))
-            for val in op_list:
-                index_list.append(f'{benchmark}-{std}-{val}')
-
-    if output_flag_2:
-        makespan_data_pd = pd.DataFrame(result_dict, index=index_list)
-        writer = pd.ExcelWriter(f'experiment with stochastic processing time result {TIMESTAMP}.xlsx')
-        makespan_data_pd.to_excel(writer,float_format='%.3f')
-        writer.save()
-        print("Dynamic experiment with stochastic processing time result output success")
-
-    # experiment_3: test on all benchmark with non-zero states
-    output_flag_3 = True
-    dispatching_rules_list = [None, "FIFO", "LIFO", "SPT", "LPT", "STPT", "LTPT", "LOR", "MOR", "MWKR", "FDD/MWKR"]
-    # dispatching_rules_list = ["FIFO"]
-    benchmark_list = ["LA/la01", "FT/ft20","LA/la26","SWV/swv11"]
-    sched_ratio = [0.2, 0.4, 0.6]
-    result_dict = {}
-    op_list = ["mean","max","min"]
-    index_list = []
-    detail_res_list = {}
-    for benchmark in benchmark_list:
-        for ratio in sched_ratio:
-            for rule in dispatching_rules_list:
-                makespans = []
-                print("benchmark_name:",benchmark,",schedule ratio:",ratio,",dispatching rule:",rule)
-                for idx in range(50):
-                    makespans.append(test_on_single_instance(benchname=benchmark, disrule_name=rule, sched_ratio=ratio, sched_seed=idx+10))
-                print(makespans)
-                detail_res_list[f'{benchmark}-{ratio}-{rule}'] = makespans
-                if rule not in result_dict.keys():
-                    result_dict[rule] = []
-                median_mp, max_mp, min_mp = np.median(makespans), np.max(makespans), np.min(makespans)
-                result_dict[rule].append(median_mp)
-                result_dict[rule].append(max_mp)
-                result_dict[rule].append(min_mp)
-                print(median_mp,'\n',max_mp,'\n',min_mp)
-            for val in op_list:
-                index_list.append(f'{benchmark}-{ratio}-{val}')
-
-    if output_flag_3:
-        makespan_data_pd = pd.DataFrame(result_dict, index=index_list)
-        writer = pd.ExcelWriter(f'experiment_3 result {TIMESTAMP}.xlsx')
-        makespan_data_pd.to_excel(writer,float_format='%.3f')
-        writer.save()
-
-        makespan_data_pd = pd.DataFrame(detail_res_list, index=list(range(1,51)))
-        writer = pd.ExcelWriter(f'experiment with non-zero states detailed result {TIMESTAMP}.xlsx')
-        makespan_data_pd.to_excel(writer,float_format='%.3f')
-        writer.save()
-        print("Dynamic experiment with non-zero states result output success")
+    # output_flag_2 = True
+    # dispatching_rules_list = [None, "FIFO", "LIFO", "SPT", "LPT", "STPT", "LTPT", "LOR", "MOR", "MWKR", "FDD/MWKR"]
+    # proctime_std = [1, 2, 3]
+    # benchmark_list = ["LA/la01", "FT/ft20","LA/la26","SWV/swv11"]
+    # result_dict = {}
+    # op_list = ["mean","max","min"]
+    # index_list = []
+    # for benchmark in benchmark_list:
+    #     for std in proctime_std:
+    #         for rule in dispatching_rules_list:
+    #             print("benchmark_name:",benchmark,",time std:",std,",dispatching rule:",rule)
+    #             makespans = []
+    #             for idx in range(50):
+    #                 makespans.append(test_on_single_instance(benchname=benchmark,
+    #                                                          disrule_name=rule,proctime_std=std,proc_seed=idx+10))
+    #                                                         # sched_ratio=0.4,mbrk_Ag=0.05,mbrk_seed=idx+20))
+    #             print(makespans)
+    #             if rule not in result_dict.keys():
+    #                 result_dict[rule] = []
+    #             mean_mp, max_mp, min_mp = np.mean(makespans), np.max(makespans), np.min(makespans)
+    #             result_dict[rule].append(mean_mp)
+    #             result_dict[rule].append(max_mp)
+    #             result_dict[rule].append(min_mp)
+    #             print(np.mean(makespans),'\n',np.max(makespans),'\n',np.min(makespans))
+    #         for val in op_list:
+    #             index_list.append(f'{benchmark}-{std}-{val}')
+    #
+    # if output_flag_2:
+    #     makespan_data_pd = pd.DataFrame(result_dict, index=index_list)
+    #     writer = pd.ExcelWriter(f'experiment with stochastic processing time result {TIMESTAMP}.xlsx')
+    #     makespan_data_pd.to_excel(writer,float_format='%.3f')
+    #     writer.save()
+    #     print("Dynamic experiment with stochastic processing time result output success")
+    #
+    # # experiment_3: test on all benchmark with non-zero states
+    # output_flag_3 = True
+    # dispatching_rules_list = [None, "FIFO", "LIFO", "SPT", "LPT", "STPT", "LTPT", "LOR", "MOR", "MWKR", "FDD/MWKR"]
+    # # dispatching_rules_list = ["FIFO"]
+    # benchmark_list = ["LA/la01", "FT/ft20","LA/la26","SWV/swv11"]
+    # sched_ratio = [0.2, 0.4, 0.6]
+    # result_dict = {}
+    # op_list = ["mean","max","min"]
+    # index_list = []
+    # detail_res_list = {}
+    # for benchmark in benchmark_list:
+    #     for ratio in sched_ratio:
+    #         for rule in dispatching_rules_list:
+    #             makespans = []
+    #             print("benchmark_name:",benchmark,",schedule ratio:",ratio,",dispatching rule:",rule)
+    #             for idx in range(50):
+    #                 makespans.append(test_on_single_instance(benchname=benchmark, disrule_name=rule, sched_ratio=ratio, sched_seed=idx+10))
+    #             print(makespans)
+    #             detail_res_list[f'{benchmark}-{ratio}-{rule}'] = makespans
+    #             if rule not in result_dict.keys():
+    #                 result_dict[rule] = []
+    #             median_mp, max_mp, min_mp = np.median(makespans), np.max(makespans), np.min(makespans)
+    #             result_dict[rule].append(median_mp)
+    #             result_dict[rule].append(max_mp)
+    #             result_dict[rule].append(min_mp)
+    #             print(median_mp,'\n',max_mp,'\n',min_mp)
+    #         for val in op_list:
+    #             index_list.append(f'{benchmark}-{ratio}-{val}')
+    #
+    # if output_flag_3:
+    #     makespan_data_pd = pd.DataFrame(result_dict, index=index_list)
+    #     writer = pd.ExcelWriter(f'experiment_3 result {TIMESTAMP}.xlsx')
+    #     makespan_data_pd.to_excel(writer,float_format='%.3f')
+    #     writer.save()
+    #
+    #     makespan_data_pd = pd.DataFrame(detail_res_list, index=list(range(1,51)))
+    #     writer = pd.ExcelWriter(f'experiment with non-zero states detailed result {TIMESTAMP}.xlsx')
+    #     makespan_data_pd.to_excel(writer,float_format='%.3f')
+    #     writer.save()
+    #     print("Dynamic experiment with non-zero states result output success")
 
     # experiment_4: test on all benchmark with machine breakdown
     output_flag_4 = True
     dispatching_rules_list = [None, "FIFO", "LIFO", "SPT", "LPT", "STPT", "LTPT", "LOR", "MOR", "MWKR", "FDD/MWKR"]
-    Ag_list = [0.02, 0.05, 0.08]
-    benchmark_list = ["LA/la01", "FT/ft20", "LA/la26", "SWV/swv11"]
+    Ag_list = [0.05] # [0.02, 0.05, 0.08]
+    benchmark_list = ["LA/la26"] #["LA/la01", "FT/ft20", "LA/la26", "SWV/swv11"]
     result_dict = {}
     op_list = ["mean", "max", "min"]
     index_list = []

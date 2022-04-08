@@ -126,10 +126,12 @@ def ES_train(agent, utility, env):
 
     for p, p_update in zip(agent.policy.actor.parameters(), actor_weighted_noise):
         update = p_update / (len(rewards) * NOISE_STD)
-        p.data += LEARNING_RATE * update
+        # p.data += LEARNING_RATE * update
+        p.data = 0.9 * p.data +  0.1 * LEARNING_RATE * update
     for p, p_update in zip(agent.policy.feature_extract.parameters(), gnn_weighted_noise):
         update = p_update / (len(rewards) * NOISE_STD)
-        p.data += LEARNING_RATE * update
+        # p.data += LEARNING_RATE * update
+        p.data = 0.9 * p.data +  0.1 * LEARNING_RATE * update
 
     # weighted_noise = None
     # norm_reward = np.array(batch_reward)

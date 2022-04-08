@@ -141,6 +141,8 @@ class Machine:
         self.mbrk_Ag = mbrk_Ag
         self.brk_rep_time_table = brk_rep_time_table
         self.normal_flag = True
+        if self.mbrk_Ag is not None and self.mbrk_Ag > 0:
+            self.mbdatime = 0
 
     def __str__(self):
         return "Machine {}".format(self.machine_id)
@@ -286,23 +288,6 @@ class Machine:
         self.remaining_time = -1
 
     def do_processing(self, t, shor_interval):
-        if self.mbrk_Ag:
-            flag = 0
-            origin_normal_flag = self.normal_flag
-            for idx, val in enumerate(self.brk_rep_time_table[self.machine_id-1]): #machin_id start form 1
-                if t < val:
-                    flag = idx
-                    self.trans_interval = val - t
-                    break
-            if flag % 2 == 0:
-                self.normal_flag = True
-                # if origin_normal_flag != self.normal_flag:
-                    # print("[Machine] : / Machine {} is repaired / t = {} ".format(self.machine_id, t))
-            else:
-                self.normal_flag = False
-                # if origin_normal_flag != self.normal_flag:
-                #     print("[Machine] : / Machine {} broken / t = {} ".format(self.machine_id, t))
-
         if self.normal_flag:
             if self.remaining_time > 0:  # When machine do some operation
                 if self.current_op is not None:
@@ -327,6 +312,44 @@ class Machine:
                 op.waiting_time += shor_interval
         else:
             pass
+        if self.mbrk_Ag:
+            if self.normal_flag == False:
+                # if self.current_op is not None or len(doable_ops)>0:
+                # if self.current_op is not None:
+                if len(doable_ops)>0:
+                    self.mbdatime += shor_interval
+                    # if self.current_op is not None:
+                    #     print("self.current_op is not None:", self.current_op._id)
+                    #     print("self.current process time:", self.current_op.processing_time)
+                    #     print("self.current remain time:",self.current_op.remaining_time)
+                    # if len(doable_ops)>0:
+                    #     print("doable is not None:")
+                    #     for op in doable_ops:
+                    #         print(op._id)
+                    # print("machine_id:",self.machine_id,
+                    #       "time:",t,
+                    #       "interval:",shor_interval)
+                    # print("______________________________________")
+
+        if self.mbrk_Ag:
+            flag = 0
+            for idx, val in enumerate(self.brk_rep_time_table[self.machine_id-1]): #machin_id start form 1
+                if t < val:
+                    flag = idx
+                    self.trans_interval = val - t
+                    break
+            if flag % 2 == 0:
+                self.normal_flag = True
+                # if t == 53 and self.machine_id == 4:
+                #     print("++++++++++++++++++++++++++++++++++++++++++++++++++++")
+                #     print("trans_interval:", self.trans_interval)
+                #     print("++++++++++++++++++++++++++++++++++++++++++++++++++++")
+                # if origin_normal_flag != self.normal_flag:
+                # print("[Machine] : / Machine {} is repaired / t = {} ".format(self.machine_id, t))
+            else:
+                self.normal_flag = False
+                # if origin_normal_flag != self.normal_flag:
+                #     print("[Machine] : / Machine {} broken / t = {} ".format(self.machine_id, t))
 
     def transit(self, t, a):
         if self.available():  # Machine is ready to process.

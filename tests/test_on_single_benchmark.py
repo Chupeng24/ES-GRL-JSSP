@@ -31,6 +31,13 @@ def test_on_single_instance(benchname,disrule_name=None,proctime_std=0,sched_rat
             #interval = end_time - start_time
             #print("calculate time:",interval)
             #env.draw_gantt_chart("rule_test_result.html", f'benchmark:{benchname}',10000)
+            env.draw_gantt_chart(path=f"validate mbdatime{disrule_name}.html",benchmark_name= benchname,max_x = 100)
+            print("env.global_time:",env.global_time)
+            sum_mbda_time =  0
+            if env.mbrk_Ag is not None and env.mbrk_Ag > 0:
+                for _, machine in env.machine_manager.machines.items():
+                    sum_mbda_time += machine.mbdatime
+            print("sum_mbda_time:",sum_mbda_time)
             return env.global_time
 
             # break
@@ -42,9 +49,9 @@ if __name__ == '__main__':
     np.random.seed(configs.np_seed_validation)
     random.seed(configs.python_seed)
     output_flag_2 = True
-    dispatching_rules_list = [None, "FIFO", "LIFO", "SPT", "LPT", "STPT", "LTPT", "LOR", "MOR", "MWKR", "FDD/MWKR"]
-    proctime_std = [0, 1, 2, 3]
-    benchmark_list = ["FT/ft06"]
+    dispatching_rules_list = ["FIFO", ]
+    proctime_std = [0]
+    benchmark_list = ["SWV/swv01"]
     result_dict = {}
     op_list = ["mean","max","min"]
     index_list = []
@@ -53,10 +60,13 @@ if __name__ == '__main__':
             for rule in dispatching_rules_list:
                 print("benchmark_name:",benchmark,",time std:",std,",dispatching rule:",rule)
                 makespans = []
-                for idx in range(50):
+                for idx in range(100):
+                    # makespans.append(test_on_single_instance(benchname=benchmark,
+                    #                                          disrule_name=rule,proctime_std=std,sched_ratio=None))
                     makespans.append(test_on_single_instance(benchname=benchmark,
-                                                             disrule_name=rule,proctime_std=std,sched_ratio=None))
-                print(makespans)
+                                                             disrule_name=rule,mbrk_Ag=0.5, mbrk_seed = 9))
+                print(makespans[0])
+                print("####################################################################################################")
                 if rule not in result_dict.keys():
                     result_dict[rule] = []
                 mean_mp, max_mp, min_mp = np.mean(makespans), np.max(makespans), np.min(makespans)
@@ -67,9 +77,9 @@ if __name__ == '__main__':
             for val in op_list:
                 index_list.append(f'{benchmark}-{std}-{val}')
 
-    if output_flag_2:
-        makespan_data_pd = pd.DataFrame(result_dict, index=index_list)
-        writer = pd.ExcelWriter(f'experiment_2 result {TIMESTAMP}.xlsx')
-        makespan_data_pd.to_excel(writer,float_format='%.3f')
-        writer.save()
-        print("experiment_2 result output success")
+    # if output_flag_2:
+    #     makespan_data_pd = pd.DataFrame(result_dict, index=index_list)
+    #     writer = pd.ExcelWriter(f'experiment_2 result {TIMESTAMP}.xlsx')
+    #     makespan_data_pd.to_excel(writer,float_format='%.3f')
+    #     writer.save()
+    #     print("experiment_2 result output success")

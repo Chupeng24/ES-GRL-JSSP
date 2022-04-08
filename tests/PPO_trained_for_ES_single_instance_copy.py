@@ -95,9 +95,17 @@ def evaluate(env, agent, idx):
 
         if done:
             makespan = env.global_time
-            ep_r = -(makespan / np.sum(proctime_matrix))
-            # ep_r = (np.sum(proctime_matrix) / makespan)
-            # ep_r = - float(makespan)
+
+            if env.mbrk_Ag is not None and env.mbrk_Ag > 0:
+                sum_mbda_time =  0
+                for _, machine in env.machine_manager.machines.items():
+                    sum_mbda_time += machine.mbdatime
+                ep_r = -(makespan / (sum_mbda_time + np.sum(proctime_matrix)))
+                # ep_r = -((sum_mbda_time + np.sum(proctime_matrix)/makespan))
+            else:
+                ep_r = -(makespan / np.sum(proctime_matrix))
+                # ep_r = (np.sum(proctime_matrix) / makespan)
+                # ep_r = - float(makespan)
             break
     return ep_r, steps
 

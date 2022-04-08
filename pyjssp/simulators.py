@@ -171,19 +171,28 @@ class JSSPSimulator(gym.Env, EzPickle):
 
         for _, machine in self.machine_manager.machines.items():
             if hasattr(machine, 'trans_interval'):
+                # if machine.num_done_ops < len(machine.possible_ops):
                 if machine.trans_interval < short_m:
                     short_m = machine.trans_interval
 
         for _, machine in self.machine_manager.machines.items():
             if machine.current_op != None:
-                if machine.remaining_time < short_op:
-                    short_op = machine.remaining_time
+                if machine.normal_flag == True:
+                    if machine.remaining_time < short_op:
+                        short_op = machine.remaining_time
 
         # if self.mbrk_Ag:
         #     shor_interval = 1
         # else:
         #     shor_interval = int(short_op)
+        # if short_m == float('inf') and short_op == float('inf'):
+        #     print("")
+
         shor_interval = int(min(short_m, short_op))
+
+        # if self.mbrk_Ag is not None and self.mbrk_Ag > 0:
+        #     shor_interval = 1
+
         self.global_time += shor_interval
         self.machine_manager.do_processing(self.global_time, shor_interval)
 
