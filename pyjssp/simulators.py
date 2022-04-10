@@ -428,7 +428,7 @@ class JSSPSimulator(gym.Env, EzPickle):
                 n = op.sur_id
                 if op.node_status == NOT_START_NODE_SIG:
                     node_status_fea[n] = [1,0,0]
-                    node_status_single_fea[n] = 0
+                    node_status_single_fea[n] = -1
                 elif op.node_status == PROCESSING_NODE_SIG:
                     node_status_fea[n] = [0,1,0]
                     node_status_single_fea[n] = 0
@@ -442,7 +442,7 @@ class JSSPSimulator(gym.Env, EzPickle):
                 rem_op_fea[n] = op.remaining_ops
                 wait_time_fea[n] = op.waiting_time
                 rem_time_fea[n] = op.remaining_time
-        node_status_single_fea = node_status_single_fea.reshape(self.num_jobs,self.num_steps)
+        # node_status_single_fea = node_status_single_fea.reshape(self.num_jobs,self.num_steps)
         # for job_id, job in self.job_manager.jobs.items():
         #     for op in job.ops:
         #         not_start_cond = (op.node_status == NOT_START_NODE_SIG)
@@ -473,7 +473,7 @@ class JSSPSimulator(gym.Env, EzPickle):
                               prt_fea.reshape(self.num_ops, 1),
                               wait_time_fea.reshape(self.num_ops, 1),
                               # com_fea.reshape(self.num_ops, 1)
-                              node_status_fea.reshape(self.num_ops, 3)),axis=1)
+                              node_status_single_fea.reshape(self.num_ops, 1)),axis=1)
         # rem_op_fea.reshape(self.num_ops, 1),
         # wait_time_fea.reshape(self.num_ops, 1)/np.max(wait_time_fea)), axis=1)
         # rem_time_fea.reshape(self.num_ops, 1)), axis=1)
