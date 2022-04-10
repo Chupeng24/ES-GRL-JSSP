@@ -49,9 +49,11 @@ if __name__ == '__main__':
     np.random.seed(configs.np_seed_validation)
     random.seed(configs.python_seed)
     output_flag_2 = True
+    # dispatching_rules_list = [None, "FIFO", "LIFO", "SPT", "LPT", "STPT", "LTPT", "LOR", "MOR", "MWKR", "FDD/MWKR"]
+    # proctime_std = [0, 1, 2, 3]
     dispatching_rules_list = ["FIFO", ]
     proctime_std = [0]
-    benchmark_list = ["SWV/swv01"]
+    benchmark_list = ["FT/ft06"]
     result_dict = {}
     op_list = ["mean","max","min"]
     index_list = []
@@ -60,7 +62,7 @@ if __name__ == '__main__':
             for rule in dispatching_rules_list:
                 print("benchmark_name:",benchmark,",time std:",std,",dispatching rule:",rule)
                 makespans = []
-                for idx in range(100):
+                for idx in range(1):
                     # makespans.append(test_on_single_instance(benchname=benchmark,
                     #                                          disrule_name=rule,proctime_std=std,sched_ratio=None))
                     makespans.append(test_on_single_instance(benchname=benchmark,

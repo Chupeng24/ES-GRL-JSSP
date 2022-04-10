@@ -97,7 +97,7 @@ class JSSPSimulator(gym.Env, EzPickle):
                     # if self.prac_proc_time_matrix[job_id][step_id] <= 0:
                     #     self.prac_proc_time_matrix[job_id][step_id] = 1
         else:
-            self.prac_proc_time_matrix = None
+            self.prac_proc_time_matrix = self.processing_time_matrix
         self.temp1 = np.zeros_like(self.processing_time_matrix, dtype=np.single)
         self.job_manager = JobManager(self.machine_matrix,
                                       self.processing_time_matrix,
@@ -454,10 +454,10 @@ class JSSPSimulator(gym.Env, EzPickle):
         prt_fea = (prt_fea - prt_fea_min) / (prt_fea_max-prt_fea_min)
         #prt_fea = (prt_fea - np.mean(prt_fea))/np.std(prt_fea)
 
-        # if np.max(wait_time_fea) == 0:
-        #     wait_time_fea = wait_time_fea.reshape(self.num_ops, 1)
-        # else:
-        #     wait_time_fea = wait_time_fea.reshape(self.num_ops, 1) / np.max(wait_time_fea)
+        if np.max(wait_time_fea) == 0:
+            wait_time_fea = wait_time_fea.reshape(self.num_ops, 1)
+        else:
+            wait_time_fea = wait_time_fea.reshape(self.num_ops, 1) / np.max(wait_time_fea)
         #
         # if np.max(rem_time_fea) == 0:
         #     rem_time_fea = rem_time_fea.reshape(self.num_ops, 1)
@@ -470,7 +470,8 @@ class JSSPSimulator(gym.Env, EzPickle):
                               # rem_time_fea,
                               com_fea.reshape(self.num_ops, 1),
                               #self.FDDMWKR.reshape(self.num_ops,1),
-                              #prt_fea.reshape(self.num_ops, 1),
+                              prt_fea.reshape(self.num_ops, 1),
+                              wait_time_fea.reshape(self.num_ops, 1),
                               # com_fea.reshape(self.num_ops, 1)
                               node_status_fea.reshape(self.num_ops, 3)),axis=1)
         # rem_op_fea.reshape(self.num_ops, 1),

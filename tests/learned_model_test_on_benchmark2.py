@@ -136,6 +136,7 @@ if __name__ == '__main__':
     #              "-n_j-20-n_m-20-same size training03-03-22-38",
     #              "-n_j-30-n_m-15-same size training03-04-11-20",
     #              "-n_j-30-n_m-20-same size training03-04-11-20"]
+    # TODO:主要改动这个地方_1
     path_list = ["-n_j-8-n_m-7-training like keores paper method03-15-21-44"]
 
     name_list = []
@@ -154,6 +155,7 @@ if __name__ == '__main__':
         # ms_on_rule_dict[rule] = ms_on_rule
         print("experiment test on benchmark with diff size model")
     makespan_data_pd = pd.DataFrame(ms_on_model, index=name_list)
+    # TODO:主要改动这个地方_2
     writer = pd.ExcelWriter(
              f'Excel_save_files/n_j-8-n_m-7-training like keores paper method-03-15-21-44.xlsx')
     makespan_data_pd.to_excel(writer, float_format='%.3f')

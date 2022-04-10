@@ -286,6 +286,10 @@ class Machine:
         self.prev_op = self.current_op
         self.current_op = None
         self.remaining_time = -1
+        # if self.mbrk_Ag:
+        #     if hasattr(self, 'trans_interval'):
+        #         if len(self.possible_ops) == self.num_done_ops:
+        #             self.trans_interval = float("inf")
 
     def do_processing(self, t, shor_interval):
         if self.normal_flag:
@@ -316,7 +320,7 @@ class Machine:
             if self.normal_flag == False:
                 # if self.current_op is not None or len(doable_ops)>0:
                 # if self.current_op is not None:
-                if len(doable_ops)>0:
+                if self.current_op is not None or len(doable_ops)>0:
                     self.mbdatime += shor_interval
                     # if self.current_op is not None:
                     #     print("self.current_op is not None:", self.current_op._id)
