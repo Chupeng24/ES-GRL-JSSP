@@ -18,13 +18,7 @@ def test_on_single_instance(machine_matrix, processing_time_matrix,disrule_name=
 
     env = JSSPSimulator(num_jobs=None, num_machines=None)
     # env.reset(machine_matrix=machine_matrix, processing_time_matrix=processing_time_matrix)
-    env.reset(machine_matrix=m_matrix,
-              processing_time_matrix=proctime_matrix,
-              proctime_std=2,
-              sched_ratio=0.3,
-              proc_seed=1,
-              mbrk_Ag=0.5,
-              mbrk_seed=10)
+    env.reset(machine_matrix=m_matrix, processing_time_matrix=proctime_matrix)
     while True:
         if env.random_stop_flag == True:
             _, _, _, _, _,_, done = env.step(action=None,disrule_name=disrule_name)
@@ -41,8 +35,8 @@ if __name__ == '__main__':
     np.random.seed(200)
     random.seed(200)
     for i in range(100):
-        n_m = np.random.randint(5,9)
-        n_j = np.random.randint(n_m,9)
+        n_m = 10
+        n_j = 10
         proctime_matrix,m_matrix= data_generator(n_j=n_j, n_m=n_m, low=configs.low, high=configs.high)
         vali_data3.append((proctime_matrix,m_matrix))
 

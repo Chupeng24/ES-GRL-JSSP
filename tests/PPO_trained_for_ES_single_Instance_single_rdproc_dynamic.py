@@ -15,7 +15,7 @@ from mb_agg import *
 MAX_BATCH_EPISODES = 100
 MAX_BATCH_STEPS = 10000
 NOISE_STD = 0.05
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.0001
 device = torch.device("cpu")
 
 base = MAX_BATCH_EPISODES * 2  # *2 for mirrored sampling
@@ -66,7 +66,7 @@ def evaluate(env, agent, idx):
     # proctime_matrix, m_matrix = data_generator(n_j=n_j, n_m=n_m, low=configs.low, high=configs.high)
     # proctime_matrix, m_matrix = vali_data3[0]
     # fea, adj, _, reward, candidate, mask, done = env.reset(machine_matrix=m_matrix, processing_time_matrix=proctime_matrix)
-    fea, adj, _, reward, candidate, mask, done = env.reset(jssp_path=parent_path + f'/benchmark/SWV/swv11.txt',
+    fea, adj, _, reward, candidate, mask, done = env.reset(jssp_path=parent_path + f'/benchmark/LA/la16.txt',
                                                            proctime_std=2, proc_seed=idx+10)
                                                            #mbrk_Ag=0.05, mbrk_seed=idx+10)
     n_j = env.num_jobs
@@ -206,7 +206,7 @@ if __name__ == "__main__":
               hidden_dim_actor=configs.hidden_dim_actor,
               num_mlp_layers_critic=configs.num_mlp_layers_critic,
               hidden_dim_critic=configs.hidden_dim_critic)
-    path = './SavedNetwork/{}.pth'.format("-n_j-10-n_m-10-ES training on static env03-22-22-20")
+    path = './SavedNetwork/{}.pth'.format("-n_j-10-n_m-10-training on static env04-10-21-19")
     ppo.policy.load_state_dict(torch.load(path, map_location=torch.device('cpu')))
 
     # create envs and validate instance data

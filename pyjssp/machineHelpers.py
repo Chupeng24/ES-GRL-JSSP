@@ -144,6 +144,8 @@ class Machine:
         if self.mbrk_Ag is not None and self.mbrk_Ag > 0:
             self.mbdatime = 0
 
+        self.total_proc = 0
+
     def __str__(self):
         return "Machine {}".format(self.machine_id)
 
@@ -296,6 +298,7 @@ class Machine:
             if self.remaining_time > 0:  # When machine do some operation
                 if self.current_op is not None:
                     self.current_op.remaining_time -= shor_interval
+                    self.total_proc += shor_interval
                     if self.current_op.remaining_time <= 0:
                         if self.current_op.remaining_time < 0:
                             raise RuntimeWarning("Negative remaining time observed")
@@ -352,6 +355,23 @@ class Machine:
                 # print("[Machine] : / Machine {} is repaired / t = {} ".format(self.machine_id, t))
             else:
                 self.normal_flag = False
+
+                mbd_inf_op_id = []
+                if self.current_op is not None:
+                    # infer_op_id.append(self.current_op.sur_id)
+                    # cur_op = self.current_op
+                    for op in self.current_op.job.ops[self.current_op.step_id:]:
+                        mbd_inf_op_id.append(op.sur_id)
+
+                for dis_op in self.remain_ops:
+                    for op in self.current_op.job.ops[dis_op.step_id:]:
+                        mbd_inf_op_id.append(op.sur_id)
+
+
+
+
+
+
                 # if origin_normal_flag != self.normal_flag:
                 #     print("[Machine] : / Machine {} broken / t = {} ".format(self.machine_id, t))
 

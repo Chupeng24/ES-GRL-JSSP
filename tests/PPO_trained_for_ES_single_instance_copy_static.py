@@ -10,7 +10,16 @@ from validation_update import validate
 import random
 from agent_utils import *
 from mb_agg import *
+import pandas as pd
 
+# df = pd.read_csv('optim_makespan_of_random_gen_ins_600000_2022-06-07-11-43-40.csv', index_col=0)
+#
+# seed_list = df["random_seed"]
+# optim_list = df["optim_makespan"]
+
+# seed_list = seed_list.values
+# optim_list = optim_list.values
+# global_idx = 0
 
 MAX_BATCH_EPISODES = 100
 MAX_BATCH_STEPS = 10000
@@ -24,19 +33,24 @@ util_ = np.maximum(0, np.log(base / 2 + 1) - np.log(rank))
 utility = util_ / util_.sum() - 1 / base
 
 data_generator = uni_instance_gen
-np.random.seed(configs.np_seed_train)
-random.seed(configs.python_seed)
-torch.manual_seed(configs.torch_seed)
+# np.random.seed(configs.np_seed_train)
+# random.seed(configs.python_seed)
+# torch.manual_seed(configs.torch_seed)
 
-vali_data3 = []
-# n_m = np.random.randint(5, 10)
-# n_j = np.random.randint(n_m, 10)
+# np.random.seed(configs.np_seed_train)
+# vali_data3 = []
+# # n_m = np.random.randint(5, 10)
+# # n_j = np.random.randint(n_m, 10)
 n_m = 10
 n_j = 10
-for i in range(100):
-    proctime_matrix, m_matrix = data_generator(n_j=n_j, n_m=n_m, low=configs.low, high=configs.high)
-    vali_data3.append((proctime_matrix, m_matrix))
-
+# for i in range(100):
+#     proctime_matrix, m_matrix = data_generator(n_j=n_j, n_m=n_m, low=configs.low, high=configs.high)
+#     vali_data3.append((proctime_matrix, m_matrix))
+#
+# # This have a problem ,because the testdata not identical
+# random.seed(configs.python_seed)
+# np.random.seed(configs.np_seed_train)
+# torch.manual_seed(configs.torch_seed)
 
 class Net(nn.Module):
     def __init__(self, obs_size, action_size):
@@ -52,7 +66,7 @@ class Net(nn.Module):
         return self.net(x)
 
 
-def evaluate(env, agent, idx):
+def evaluate(env, agent, seed):
     # np.random.seed(configs.np_seed_train)
     # random.seed(configs.python_seed)
     # n_m = np.random.randint(5, 10)
@@ -60,9 +74,11 @@ def evaluate(env, agent, idx):
     n_m = 10
     n_j = 10
     data_generator = uni_instance_gen
+    np.random.seed(seed)
     proctime_matrix, m_matrix = data_generator(n_j=n_j, n_m=n_m, low=configs.low, high=configs.high)
     # proctime_matrix, m_matrix = vali_data3[0]
     fea, adj, _, reward, candidate, mask, done = env.reset(machine_matrix=m_matrix, processing_time_matrix=proctime_matrix)
+                                                           #proctime_std=2,proc_seed=idx+1)
 
     # fea, adj, _, reward, candidate, mask, done = env.reset(machine_matrix=m_matrix, processing_time_matrix=proctime_matrix,
     #                                                        mbrk_Ag=0.05, mbrk_seed=idx+1)
@@ -103,9 +119,12 @@ def evaluate(env, agent, idx):
                 ep_r = -(makespan / (sum_mbda_time + np.sum(env.prac_proc_time_matrix)))
                 # ep_r = -((sum_mbda_time + np.sum(proctime_matrix)/makespan))
             else:
-                ep_r = -(makespan / np.sum(env.prac_proc_time_matrix))
+                # ep_r = -(makespan / np.sum(env.prac_proc_time_matrix))
+                ep_r = - makespan * 1.0
                 # ep_r = (np.sum(proctime_matrix) / makespan)
                 # ep_r = - float(makespan)
+                # ep_r = -((makespan / optim_list[global_idx]) - 1)
+                # ep_r = -(makespan / optim_list[global_idx])
             break
     return ep_r, steps
 
@@ -130,7 +149,7 @@ def sample_noise(agent):
     return actor_net_pos, actor_net_neg, gnn_net_pos, gnn_net_neg
 
 
-def eval_with_noise(env, agent, actor_net_noise, gnn_net_noise, idx):
+def eval_with_noise(env, agent, actor_net_noise, gnn_net_noise, seed):
     actor_net = agent.policy.actor
     gnn_net = agent.policy.feature_extract
     old_params_actor = actor_net.state_dict()
@@ -139,7 +158,7 @@ def eval_with_noise(env, agent, actor_net_noise, gnn_net_noise, idx):
         p.data += NOISE_STD * p_n
     for p, p_n in zip(gnn_net.parameters(), gnn_net_noise):
         p.data += NOISE_STD * p_n
-    r, s = evaluate(env, agent, idx)
+    r, s = evaluate(env, agent, seed)
     actor_net.load_state_dict(old_params_actor)
     gnn_net.load_state_dict(old_params_gnn)
     return r, s
@@ -176,15 +195,37 @@ def train_step(agent, actor_batch_noise, gnn_batch_noise, batch_reward, writer, 
         update = p_update / (len(batch_reward) * NOISE_STD)
         p.data += LEARNING_RATE * update
 
-if __name__ == "__main__":
-    # set tensorboard
-    tensorboard_enable = input("Whether the tensorboard is enabled:")
+def main(torch_seed, other_seed):
+    n_m = 10
+    n_j = 10
     TIMESTAMP = time.strftime("%m-%d-%H-%M", time.localtime(time.time()))
-    comment = input("comment:")
-    if bool(tensorboard_enable):
-        writer = SummaryWriter(
-            log_dir=f'runs_multiInstance/' + TIMESTAMP +'-n_j-'+f'{n_j}'+'-n_m-'+f'{n_m}-'+comment)
-        print(tensorboard_enable, ':', TIMESTAMP + comment)
+    comment = f"ES, 5 fea, torch_seed=f'{torch_seed}', other_seed=f'{other_seed}', original fitness func"
+
+    writer = SummaryWriter(
+        log_dir=f'runs_multiInstance/' + TIMESTAMP + '-n_j-' + f'{n_j}' + '-n_m-' + f'{n_m}-' + comment)
+    print(TIMESTAMP + comment)
+
+    vali_data3 = []
+    np.random.seed(configs.np_seed_validation)
+    for i in range(100):
+        n_m = 10
+        n_j = 10
+        proctime_matrix, m_matrix = data_generator(n_j=n_j, n_m=n_m, low=configs.low, high=configs.high)
+        vali_data3.append((proctime_matrix, m_matrix))
+
+    seed = other_seed  # seed 1,2,3   # pytorch seed 600, 400, 200
+    torch.manual_seed(torch_seed)
+    ##############################################
+    if torch.cuda.is_available():
+        print("using GPU")
+        torch.cuda.manual_seed_all(seed)  # torch_seed=600
+
+    random.seed(seed)
+    np.random.seed(seed)
+    # random.seed(700)
+    # np.random.seed(700)
+    seed_array = np.random.randint(low=0, high=1800 * 200, size=1800 * 200)  # size set to 1800
+    seed_idx = 0
 
     # load the net
     ppo = PPO(configs.lr, configs.gamma, configs.k_epochs, configs.eps_clip,
@@ -199,22 +240,26 @@ if __name__ == "__main__":
               hidden_dim_actor=configs.hidden_dim_actor,
               num_mlp_layers_critic=configs.num_mlp_layers_critic,
               hidden_dim_critic=configs.hidden_dim_critic)
-    path = './SavedNetwork/{}.pth'.format("mixed_training_1_99_01-27-22-59")
+    # path = './SavedNetwork/{}.pth'.format("mixed_training_1_99_01-27-22-59")
     # ppo.policy.load_state_dict(torch.load(path, map_location=torch.device('cpu')))
 
     # create envs and validate instance data
     env = JSSPSimulator(num_jobs=None, num_machines=None)
     # test ppo trained network before ES_training
-    vali_result = validate(vali_data3, ppo.policy).mean()
-    print(vali_result)
+    vali_result, ep_r = validate(vali_data3, ppo.policy)
+    vali_result = vali_result.mean()
+    ep_r = ep_r.mean()
+    print('The validation quality is:', vali_result)
+
     # for item in vali_result:
     #     print(item)
-    if tensorboard_enable:
-        writer.add_scalar("vali_result", vali_result, 0)
+    writer.add_scalar("vali_result", vali_result, 0)
+    writer.add_scalar("ep_r", ep_r, 0)
+    print(0, "vali_result:", vali_result, "ep_r:", ep_r)
     record = vali_result
     # net = Net(env.observation_space.shape[0], env.action_space.n)
     # print(net)
-    for i_update in range(configs.max_updates):
+    for i_update in range(1600):
         t_start = time.time()
         actor_batch_noise = []
         gnn_batch_noise = []
@@ -226,10 +271,12 @@ if __name__ == "__main__":
             actor_batch_noise.append(actor_net_neg)
             gnn_batch_noise.append(gnn_net_pos)
             gnn_batch_noise.append(gnn_net_neg)
-            reward, steps = eval_with_noise(env, ppo, actor_net_pos, gnn_net_pos, i_update + idx)
+            reward, steps = eval_with_noise(env, ppo, actor_net_pos, gnn_net_pos, seed_array[seed_idx])
+            seed_idx = seed_idx + 1
             batch_reward.append(reward)
             batch_steps += steps
-            reward, steps = eval_with_noise(env, ppo, actor_net_neg, gnn_net_neg, i_update + idx)
+            reward, steps = eval_with_noise(env, ppo, actor_net_neg, gnn_net_neg, seed_array[seed_idx])
+            seed_idx = seed_idx + 1
             batch_reward.append(reward)
             batch_steps += steps
 
@@ -237,17 +284,14 @@ if __name__ == "__main__":
 
         train_step(ppo, actor_batch_noise, gnn_batch_noise, batch_reward,
                    writer, i_update)
-        if i_update < 500:
-            if i_update % 50 == 0:
-                vali_result = validate(vali_data3, ppo.policy).mean()
-                print(i_update,vali_result)
-                if tensorboard_enable:
-                    writer.add_scalar("vali_result", vali_result, i_update + 1)
-        else:
-            vali_result = validate(vali_data3, ppo.policy).mean()
-            print(i_update, vali_result)
-            if tensorboard_enable:
-                writer.add_scalar("vali_result", vali_result, i_update + 1)
+
+        vali_result, ep_r = validate(vali_data3, ppo.policy)
+        vali_result = vali_result.mean()
+        ep_r = ep_r.mean()
+
+        writer.add_scalar("vali_result", vali_result, (i_update + 1) * 200)
+        writer.add_scalar("ep_r", ep_r, (i_update + 1) * 200)
+        print((i_update + 1) * 200, "vali_result:", vali_result, "ep_r:", ep_r)
 
             # NOISE_STD = 0.025
         # for item in vali_result:
@@ -266,4 +310,30 @@ if __name__ == "__main__":
         #                   i_update)
         # writer.add_scalar("batch_steps", batch_steps, i_update)
 
-    pass
+
+if __name__ == "__main__":
+
+    # main(torch_seed=600,other_seed=1)
+    # main(torch_seed=600, other_seed=2)
+    # main(torch_seed=600, other_seed=3)
+
+    # main(torch_seed=400,other_seed=1)
+    # main(torch_seed=400, other_seed=2)
+    # main(torch_seed=400, other_seed=3)
+
+    # main(torch_seed=200, other_seed=1)
+    # main(torch_seed=200, other_seed=2)
+    # main(torch_seed=200, other_seed=3)
+
+    # main(torch_seed=600, other_seed=4)
+    # main(torch_seed=400, other_seed=4)
+    # main(torch_seed=200, other_seed=4)
+    #
+    # main(torch_seed=600, other_seed=1)
+    # main(torch_seed=600, other_seed=2)
+    main(torch_seed=200, other_seed=5)
+    main(torch_seed=200, other_seed=7)
+    main(torch_seed=400, other_seed=5)
+    main(torch_seed=400, other_seed=7)
+    main(torch_seed=600, other_seed=5)
+    main(torch_seed=600, other_seed=7)

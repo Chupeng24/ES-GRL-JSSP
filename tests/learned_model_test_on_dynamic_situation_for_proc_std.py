@@ -134,11 +134,7 @@ if __name__ == '__main__':
 
     with timer:
         output_flag_2 = True
-        model_list = ["-n_j-10-n_m-10-ES training on static env03-22-22-20",
-                      "-n_j-10-n_m-10-training on ES la26 with procstd by loading static model03-28-09-45",
-                      "-n_j-10-n_m-10-training on ft20 with proctime std03-25-09-14",
-                      "-n_j-10-n_m-10-training on la01 with proc std03-24-21-16",
-                      "-n_j-10-n_m-10-training on swv11 with procstd by load static model03-29-11-21"]
+        model_list = ["-n_j-10-n_m-10-training on static env04-10-21-19",]
         proctime_std = [1, 2, 3]
         # benchmark_list = ["LA/la01", "FT/ft20", "LA/la26", "SWV/swv11"]
         benchmark_list = ["LA/la01", "FT/ft20", "LA/la26", "SWV/swv11"]
@@ -152,7 +148,7 @@ if __name__ == '__main__':
                     ppo.policy.load_state_dict(torch.load(path, map_location=torch.device('cpu')))
                     print("benchmark_name:", benchmark, ",time std:", std, ",model:", model)
                     makespans = []
-                    for idx in range(50):
+                    for idx in range(20):
                         makespans.append(test_on_single_instance(benchname=benchmark,
                                                                  model=ppo,
                                                                  proctime_std=std,

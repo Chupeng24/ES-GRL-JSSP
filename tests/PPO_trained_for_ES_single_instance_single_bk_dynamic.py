@@ -15,7 +15,7 @@ from mb_agg import *
 MAX_BATCH_EPISODES = 100
 MAX_BATCH_STEPS = 10000
 NOISE_STD = 0.05
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.0001
 device = torch.device("cpu")
 
 base = MAX_BATCH_EPISODES * 2  # *2 for mirrored sampling
@@ -66,7 +66,7 @@ def evaluate(env, agent, idx):
     # proctime_matrix, m_matrix = data_generator(n_j=n_j, n_m=n_m, low=configs.low, high=configs.high)
     # proctime_matrix, m_matrix = vali_data3[0]
     # fea, adj, _, reward, candidate, mask, done = env.reset(machine_matrix=m_matrix, processing_time_matrix=proctime_matrix)
-    fea, adj, _, reward, candidate, mask, done = env.reset(jssp_path=parent_path + f'/benchmark/SWV/swv11.txt',
+    fea, adj, _, reward, candidate, mask, done = env.reset(jssp_path=parent_path + f'/benchmark/LA/la16.txt',
                                                            mbrk_Ag=0.05, mbrk_seed=idx+10)
     n_j = env.num_jobs
     n_m = env.num_machine
@@ -193,101 +193,102 @@ if __name__ == "__main__":
         print(tensorboard_enable, ':', TIMESTAMP + comment)
 
     # load the net
-    ppo = PPO(configs.lr, configs.gamma, configs.k_epochs, configs.eps_clip,
-              n_j=None,
-              n_m=None,
-              num_layers=configs.num_layers,
-              neighbor_pooling_type=configs.neighbor_pooling_type,
-              input_dim=configs.input_dim,
-              hidden_dim=configs.hidden_dim,
-              num_mlp_layers_feature_extract=configs.num_mlp_layers_feature_extract,
-              num_mlp_layers_actor=configs.num_mlp_layers_actor,
-              hidden_dim_actor=configs.hidden_dim_actor,
-              num_mlp_layers_critic=configs.num_mlp_layers_critic,
-              hidden_dim_critic=configs.hidden_dim_critic)
-    path = './SavedNetwork/{}.pth'.format("-n_j-10-n_m-10-ES training on static env03-22-22-20")
-    ppo.policy.load_state_dict(torch.load(path, map_location=torch.device('cpu')))
+    from pyjssp.utils import Timer
+    timer = Timer("cal time")
+    with timer:
+        ppo = PPO(configs.lr, configs.gamma, configs.k_epochs, configs.eps_clip,
+                  n_j=None,
+                  n_m=None,
+                  num_layers=configs.num_layers,
+                  neighbor_pooling_type=configs.neighbor_pooling_type,
+                  input_dim=configs.input_dim,
+                  hidden_dim=configs.hidden_dim,
+                  num_mlp_layers_feature_extract=configs.num_mlp_layers_feature_extract,
+                  num_mlp_layers_actor=configs.num_mlp_layers_actor,
+                  hidden_dim_actor=configs.hidden_dim_actor,
+                  num_mlp_layers_critic=configs.num_mlp_layers_critic,
+                  hidden_dim_critic=configs.hidden_dim_critic)
+        path = './SavedNetwork/{}.pth'.format("-n_j-10-n_m-10-training on static env04-10-21-19")
+        ppo.policy.load_state_dict(torch.load(path, map_location=torch.device('cpu')))
 
-    # create envs and validate instance data
-    env = JSSPSimulator(num_jobs=None, num_machines=None)
-    # test ppo trained network before ES_training
-    # vali_result = validate(vali_data3, ppo.policy).mean()
-    # print(vali_result)
-    # for item in vali_result:
-    #     print(item)
-    # if tensorboard_enable:
-    #     writer.add_scalar("vali_result", vali_result, 0)
-    # record = vali_result
-    # net = Net(env.observation_space.shape[0], env.action_space.n)
-    # print(net)
-    record = -100000000
-    vali_result = 0
-    for idx in range(100):
-        vali_result += evaluate(env, ppo, idx)[0]
-    vali_result = np.mean(vali_result)
-    if tensorboard_enable:
-        writer.add_scalar("vali_result", vali_result, 0)
-
-    for i_update in range(configs.max_updates):
-        t_start = time.time()
-        actor_batch_noise = []
-        gnn_batch_noise = []
-        batch_reward = []
-        batch_steps = 0
-        for idx in range(MAX_BATCH_EPISODES):
-            actor_net_pos, actor_net_neg, gnn_net_pos, gnn_net_neg = sample_noise(ppo)
-            actor_batch_noise.append(actor_net_pos)
-            actor_batch_noise.append(actor_net_neg)
-            gnn_batch_noise.append(gnn_net_pos)
-            gnn_batch_noise.append(gnn_net_neg)
-            reward, steps = eval_with_noise(env, ppo, actor_net_pos, gnn_net_pos, i_update + idx)
-            batch_reward.append(reward)
-            batch_steps += steps
-            reward, steps = eval_with_noise(env, ppo, actor_net_neg, gnn_net_neg, i_update + idx)
-            batch_reward.append(reward)
-            batch_steps += steps
-
-        m_reward = np.mean(batch_reward)
-
-        train_step(ppo, actor_batch_noise, gnn_batch_noise, batch_reward,
-                   writer, i_update)
-
-        vali_result = 0
-        for idx in range(100):
-            vali_result += evaluate(env,ppo,idx)[0]
-        vali_result = np.mean(vali_result)
-
-        if tensorboard_enable:
-            writer.add_scalar("vali_result", vali_result, i_update + 1)
-
-        # if i_update < 500:
-        #     if i_update % 50 == 0:
-        #         vali_result = validate(vali_data3, ppo.policy).mean()
-        #         print(i_update,vali_result)
-        #         if tensorboard_enable:
-        #             writer.add_scalar("vali_result", vali_result, i_update + 1)
-        # else:
-        #     vali_result = validate(vali_data3, ppo.policy).mean()
-        #     print(i_update, vali_result)
-        #     if tensorboard_enable:
-        #         writer.add_scalar("vali_result", vali_result, i_update + 1)
-
-        # NOISE_STD = 0.025
+        # create envs and validate instance data
+        env = JSSPSimulator(num_jobs=None, num_machines=None)
+        # test ppo trained network before ES_training
+        # vali_result = validate(vali_data3, ppo.policy).mean()
+        # print(vali_result)
         # for item in vali_result:
         #     print(item)
+        # if tensorboard_enable:
+        #     writer.add_scalar("vali_result", vali_result, 0)
+        # record = vali_result
+        # net = Net(env.observation_space.shape[0], env.action_space.n)
+        # print(net)
+        record = -100000000
+        vali_result = 0
+        for idx in range(100):
+            vali_result += evaluate(env, ppo, idx)[0]
+        vali_result = np.mean(vali_result)
+        if tensorboard_enable:
+            writer.add_scalar("vali_result", vali_result, 0)
 
-        # r, s = evaluate(env, agent, idx)
-        if vali_result > record:
-            torch.save(ppo.policy.state_dict(),
-                       './SavedNetwork/{}.pth'.format('-n_j-' + f'{n_j}' + '-n_m-' + f'{n_m}-' + comment + TIMESTAMP))
-            record = vali_result
-        # writer.add_scalar("reward_mean", m_reward, i_update)
-        # writer.add_scalar("reward_std", np.std(batch_reward),
-        #                   i_update)
-        # writer.add_scalar("reward_max", np.max(batch_reward),
-        #                   i_update)
-        # writer.add_scalar("batch_episodes", len(batch_reward),
-        #                   i_update)
-        # writer.add_scalar("batch_steps", batch_steps, i_update)
+        for i_update in range(1):
+            t_start = time.time()
+            actor_batch_noise = []
+            gnn_batch_noise = []
+            batch_reward = []
+            batch_steps = 0
+            for idx in range(MAX_BATCH_EPISODES):
+                actor_net_pos, actor_net_neg, gnn_net_pos, gnn_net_neg = sample_noise(ppo)
+                actor_batch_noise.append(actor_net_pos)
+                actor_batch_noise.append(actor_net_neg)
+                gnn_batch_noise.append(gnn_net_pos)
+                gnn_batch_noise.append(gnn_net_neg)
+                reward, steps = eval_with_noise(env, ppo, actor_net_pos, gnn_net_pos, i_update + idx)
+                batch_reward.append(reward)
+                batch_steps += steps
+                reward, steps = eval_with_noise(env, ppo, actor_net_neg, gnn_net_neg, i_update + idx)
+                batch_reward.append(reward)
+                batch_steps += steps
 
-    pass
+            m_reward = np.mean(batch_reward)
+
+            train_step(ppo, actor_batch_noise, gnn_batch_noise, batch_reward,
+                       writer, i_update)
+
+            vali_result = 0
+            for idx in range(100):
+                vali_result += evaluate(env,ppo,idx)[0]
+            vali_result = np.mean(vali_result)
+
+            if tensorboard_enable:
+                writer.add_scalar("vali_result", vali_result, i_update + 1)
+
+            # if i_update < 500:
+            #     if i_update % 50 == 0:
+            #         vali_result = validate(vali_data3, ppo.policy).mean()
+            #         print(i_update,vali_result)
+            #         if tensorboard_enable:
+            #             writer.add_scalar("vali_result", vali_result, i_update + 1)
+            # else:
+            #     vali_result = validate(vali_data3, ppo.policy).mean()
+            #     print(i_update, vali_result)
+            #     if tensorboard_enable:
+            #         writer.add_scalar("vali_result", vali_result, i_update + 1)
+
+            # NOISE_STD = 0.025
+            # for item in vali_result:
+            #     print(item)
+
+            # r, s = evaluate(env, agent, idx)
+            if vali_result > record:
+                torch.save(ppo.policy.state_dict(),
+                           './SavedNetwork/{}.pth'.format('-n_j-' + f'{n_j}' + '-n_m-' + f'{n_m}-' + comment + TIMESTAMP))
+                record = vali_result
+            # writer.add_scalar("reward_mean", m_reward, i_update)
+            # writer.add_scalar("reward_std", np.std(batch_reward),
+            #                   i_update)
+            # writer.add_scalar("reward_max", np.max(batch_reward),
+            #                   i_update)
+            # writer.add_scalar("batch_episodes", len(batch_reward),
+            #                   i_update)
+            # writer.add_scalar("batch_steps", batch_steps, i_update)

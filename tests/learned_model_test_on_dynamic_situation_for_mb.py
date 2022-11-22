@@ -213,11 +213,13 @@ if __name__ == '__main__':
         #     print("Dynamic experiment by model with non-zero states result output success")
 
         # experiment_4: test on all benchmark with machine breakdown
-        output_flag_4 = True
-        model_list = ['-n_j-10-n_m-10-training swv11 instance with machine breakdown by load static model03-29-11-31']
+        output_flag_4 = False
+        model_list = ['-n_j-10-n_m-10-training on static env04-10-21-19']
         Ag_list = [0.02, 0.05, 0.08]
-        #benchmark_list = ["LA/la26"]
+        # Ag_list = [0.05]
+        # benchmark_list = ["LA/la26"]
         benchmark_list = ["LA/la01", "FT/ft20", "LA/la26", "SWV/swv11"]
+        # benchmark_list = ["TA/ta71"]
         result_dict = {}
         op_list = ["mean", "max", "min"]
         index_list = []

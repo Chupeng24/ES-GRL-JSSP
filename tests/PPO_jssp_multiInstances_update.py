@@ -168,7 +168,7 @@ class PPO:
         return loss_sum.mean().item(), vloss_sum.mean().item(),-entloss_sum.mean().item()
 
 
-def main():
+def main(torch_seed, other_seed):
 
     from pyjssp.simulators import JSSPSimulator
     env = JSSPSimulator(num_jobs=None, num_machines=None)
@@ -176,42 +176,56 @@ def main():
     from uniform_instance_gen import uni_instance_gen
     data_generator = uni_instance_gen
 
-    tensorboard_enable = input("Whether the tensorboard is enabled:")
+    n_m = 10
+    n_j = 10
     TIMESTAMP = time.strftime("%m-%d-%H-%M", time.localtime(time.time()))
-    if bool(tensorboard_enable):
-        comment = input("what changes have been made:")
-        writer = SummaryWriter(log_dir=f'runs_multiInstance/'+ TIMESTAMP +'-mt'+f'-lr-{configs.lr}'+f'-entcoef-{configs.entloss_coef}-'+comment)
-        print(tensorboard_enable,':',TIMESTAMP+ '-mixed_training')
+    comment = f"ppo, 5 fea, torch_seed=f'{torch_seed}', other_seed=f'{other_seed}', utilization reward"
+
+    writer = SummaryWriter(
+        log_dir=f'runs_multiInstance/' + TIMESTAMP + '-n_j-' + f'{n_j}' + '-n_m-' + f'{n_m}-' + comment)
+    print(TIMESTAMP + comment)
+
+    # tensorboard_enable = input("Whether the tensorboard is enabled:")
+    # TIMESTAMP = time.strftime("%m-%d-%H-%M", time.localtime(time.time()))
+    # if bool(tensorboard_enable):
+    #     comment = input("what changes have been made:")
+    #     writer = SummaryWriter(log_dir=f'runs_multiInstance/'+ TIMESTAMP +'-mt'+f'-lr-{configs.lr}'+f'-entcoef-{configs.entloss_coef}-'+comment)
+    #     print(tensorboard_enable,':',TIMESTAMP+ '-mixed_training')
 
     # n_j=15, n_m=15, np_seed_validation=200
-    flag_temp = False
-    if flag_temp:
-        dataLoaded1 = np.load('./DataGen/generatedData' + str(6) + '_' + str(6) + '_Seed' + str(configs.np_seed_validation) + '.npy')
-        vali_data1 = []
-        for i in range(dataLoaded1.shape[0]):
-            vali_data1.append((dataLoaded1[i][0], dataLoaded1[i][1]))
-
-        dataLoaded2 = np.load('./DataGen/generatedData' + str(10) + '_' + str(10) + '_Seed' + str(configs.np_seed_validation) + '.npy')
-        vali_data2 = []
-        for i in range(dataLoaded1.shape[0]):
-            vali_data2.append((dataLoaded2[i][0], dataLoaded2[i][1]))
+    # flag_temp = False
+    # if flag_temp:
+    #     dataLoaded1 = np.load('./DataGen/generatedData' + str(6) + '_' + str(6) + '_Seed' + str(configs.np_seed_validation) + '.npy')
+    #     vali_data1 = []
+    #     for i in range(dataLoaded1.shape[0]):
+    #         vali_data1.append((dataLoaded1[i][0], dataLoaded1[i][1]))
+    #
+    #     dataLoaded2 = np.load('./DataGen/generatedData' + str(10) + '_' + str(10) + '_Seed' + str(configs.np_seed_validation) + '.npy')
+    #     vali_data2 = []
+    #     for i in range(dataLoaded1.shape[0]):
+    #         vali_data2.append((dataLoaded2[i][0], dataLoaded2[i][1]))
 
     vali_data3 = []
-    np.random.seed(configs.np_seed_train)
-    random.seed(configs.python_seed)
-    torch.manual_seed(configs.torch_seed)
-    if torch.cuda.is_available():
-        print("using GPU")
-        torch.cuda.manual_seed_all(configs.torch_seed) # torch_seed=600
-
+    np.random.seed(configs.np_seed_validation)
     for i in range(100):
-        n_m = np.random.randint(5,9)
-        n_j = np.random.randint(n_m,9)
         proctime_matrix,m_matrix= data_generator(n_j=n_j, n_m=n_m, low=configs.low, high=configs.high)
         vali_data3.append((proctime_matrix,m_matrix))
-    np.random.seed(configs.np_seed_train)
-    memories = [Memory() for _ in range(configs.num_envs)]
 
+    seed = other_seed  # seed 1,2,3   # pytorch seed 600, 400, 200
+    torch.manual_seed(torch_seed)
+    ##############################################
+    if torch.cuda.is_available():
+        print("using GPU")
+        torch.cuda.manual_seed_all(seed)  # torch_seed=600
+
+    random.seed(seed)
+    np.random.seed(seed)
+    # random.seed(700)
+    # np.random.seed(700)
+    seed_array = np.random.randint(low=0, high=1800 * 200, size=1800 * 200)  # size set to 1800
+    seed_idx = 0
+
+    memories = [Memory() for _ in range(configs.num_envs)]
     ppo = PPO(configs.lr, configs.gamma, configs.k_epochs, configs.eps_clip,
               n_j=configs.n_j,   # n_j=15, n_m=15
               n_m=configs.n_m,
@@ -229,16 +243,12 @@ def main():
     # training loop
     log = []
     validation_log = []
-    optimal_gaps = []
-    optimal_gap = 1
     record = 100000
-    # vali_result = validate(vali_data, ppo.policy).mean()
-    # writer.add_scalar("vali_result", vali_result, 0)  #
-    # print('The validation quality is:', vali_result)
-    for i_update in range(configs.max_updates):      # max_updates = 40000
-
+    vali_result = validate(vali_data3, ppo.policy)[0].mean()
+    writer.add_scalar("vali_result", vali_result, 0)  #
+    print('The validation quality is:', vali_result)
+    for i_update in range(80001):      # max_updates = 40000
         t3 = time.time()
-
         ep_rewards = []
         # adj = []
         # fea = []
@@ -249,10 +259,11 @@ def main():
         n_m_list = []
         for i in range(configs.num_envs):
             ep_reward = 0
-            n_m = random.randint(5,9)
-            n_j = random.randint(n_m,9)
+            # n_m = 10
+            # n_j = 10
             n_m_list.append(n_m)
             n_j_list.append(n_j)
+            np.random.seed(seed_array[seed_idx])
             proctime_matrix,m_matrix= data_generator(n_j=n_j, n_m=n_m, low=configs.low, high=configs.high)
             # np.random.seed(i_update*10+i)
             # fea, adj, _, reward, candidate, mask,done  = env.reset(machine_matrix=m_matrix, processing_time_matrix=proctime_matrix,proctime_std=2,proc_seed=i_update*20+i+1,sched_ratio=0.4,mbrk_Ag=0.05,mbrk_seed=i_update*10+i+1)
@@ -301,6 +312,7 @@ def main():
                 if done:
                     ep_makespan.append(env.global_time)
                     ep_rewards.append(ep_reward)
+                    seed_idx = seed_idx + 1
                     break
         # for j in range(configs.num_envs):
         #     ep_rewards[j] -= envs[j].posRewards
@@ -309,47 +321,42 @@ def main():
         n_m_list.clear()
         for memory in memories:
             memory.clear_memory()
-        log.append([i_update, np.mean(ep_rewards)])
+        # log.append([i_update, np.mean(ep_rewards)])
         if i_update % 50 == 0:
-            file_writing_obj = open('./log/' + 'log_' + str(configs.n_j) + '_' + str(configs.n_m) + '_' + str(configs.low) + '_' + str(configs.high) + '.txt', 'w')
-            file_writing_obj.write(str(log))
-            if tensorboard_enable:
-                writer.add_scalar("Train loss", loss, i_update)  #
-                writer.add_scalar("Train reward", np.mean(ep_rewards), i_update)  #
-                writer.add_scalar("policy_entropy", ent_loss, i_update)
-
+            writer.add_scalar("Train loss", loss, i_update*4)  #
+            writer.add_scalar("Train reward", np.mean(ep_rewards), i_update*4)  #
+            writer.add_scalar("policy_entropy", ent_loss, i_update*4)
         # log results
-        print('Episode {}\t Last reward: {:.2f}\t makespan: {}\t Mean_Vloss: {:.8f}'.format(
-            i_update, np.mean(ep_rewards), np.mean(ep_makespan), v_loss))
+        # print('Episode {}\t Last reward: {:.2f}\t makespan: {}\t Mean_Vloss: {:.8f}'.format(
+        #     i_update, np.mean(ep_rewards), np.mean(ep_makespan), v_loss))
 
         # validate and save use mean performance
         # t4 = time.time()
-        if i_update % 100 == 0:
-            print("###############################################################################")
+        if i_update % 50 == 0 and i_update != 0 :
+            # print("###############################################################################")
             #vali_result1 = validate(vali_data1, ppo.policy).mean()
             #vali_result2 = validate(vali_data2, ppo.policy).mean()
-            vali_result = validate(vali_data3, ppo.policy).mean()
+            vali_result = validate(vali_data3, ppo.policy)[0].mean()
             #vali_result = vali_result1 + vali_result2
             validation_log.append(vali_result)
             if vali_result < record:
                 torch.save(ppo.policy.state_dict(), './SavedNetwork/{}.pth'.format('mixed_training' + '_' + str(configs.low) + '_' + str(configs.high) + "_"+ TIMESTAMP))
                 record = vali_result
-            print('The validation quality is:', vali_result)
+            print(i_update*4,'The validation quality is:', vali_result)
             # file_writing_obj1 = open(
             #     './log/' + 'vali_' + str(configs.n_j) + '_' + str(configs.n_m) + '_' + str(configs.low) + '_' + str(configs.high) + '.txt', 'w')
             # file_writing_obj1.write(str(validation_log))
-            if tensorboard_enable:
-                writer.add_scalar("vali_result", vali_result, i_update)  #
+
+            writer.add_scalar("vali_result", vali_result, i_update*4)  #
         # t5 = time.time()
-    if tensorboard_enable:
-        writer.close()
+    writer.close()
     # print('Training:', t4 - t3)
     # print('Validation:', t5 - t4)
 
 if __name__ == '__main__':
-    total1 = time.time()
-    main()
-    total2 = time.time()
+    # total1 = time.time()
+    # main()
+    #total2 = time.time()
     # print(total2 - total1)
 
     # total1 = time.time()
@@ -364,3 +371,23 @@ if __name__ == '__main__':
     # main(20, 20)
     # main(30, 15)
     # main(30, 20)
+
+    # main(torch_seed=600,other_seed=1)
+    # main(torch_seed=600, other_seed=2)
+    # main(torch_seed=600, other_seed=3)   # not converge
+    # main(torch_seed=600, other_seed=4)
+
+    # main(torch_seed=400,other_seed=1)
+    # main(torch_seed=400, other_seed=2)
+    # main(torch_seed=400, other_seed=4)
+
+    # main(torch_seed=200, other_seed=1)
+    # main(torch_seed=200, other_seed=2)
+    # main(torch_seed=200, other_seed=4)
+    # main(torch_seed=600, other_seed=5)
+    # main(torch_seed=600, other_seed=6)
+    # main(torch_seed=600, other_seed=7)
+    main(torch_seed=200, other_seed=5)
+    main(torch_seed=200, other_seed=7)
+    main(torch_seed=400, other_seed=5)
+    main(torch_seed=400, other_seed=7)

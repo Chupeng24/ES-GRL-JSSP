@@ -13,6 +13,7 @@ def validate(vali_set, model):
     device = torch.device(configs.device)
 
     make_spans = []
+    ep_r_list = []
     # rollout using SavedNetwork
     for idx, data in enumerate(vali_set):
         proctime_matrix = data[0]
@@ -24,7 +25,7 @@ def validate(vali_set, model):
                                  device=device)
         # np.random.seed(200)
         # fea, adj, _, reward, candidate, mask,done = env.reset(machine_matrix=m_matrix,processing_time_matrix=proctime_matrix,proctime_std=2, proc_seed=idx,sched_ratio=0.3,mbrk_Ag=0.05,mbrk_seed=idx+1)
-        fea, adj, _, reward, candidate, mask,done = env.reset(machine_matrix=m_matrix,processing_time_matrix=proctime_matrix)
+        fea, adj, _, reward, candidate, mask,done = env.reset(machine_matrix=m_matrix,processing_time_matrix=proctime_matrix)#,proctime_std=2, proc_seed=idx+100)
         # fea, adj, _, reward, candidate, mask, done = env.reset(machine_matrix=m_matrix,
         #                                                        processing_time_matrix=proctime_matrix,
         #                                                        mbrk_Ag=0.05, mbrk_seed=10)
@@ -56,10 +57,20 @@ def validate(vali_set, model):
             fea, adj, _, reward, candidate, mask,done = env.step(action.item())
             rewards += reward
             if done:
+                makespan = env.global_time
+                if env.mbrk_Ag is not None and env.mbrk_Ag > 0:
+                    sum_mbda_time = 0
+                    for _, machine in env.machine_manager.machines.items():
+                        sum_mbda_time += machine.mbdatime
+                    ep_r = -(makespan / (sum_mbda_time + np.sum(env.prac_proc_time_matrix)))
+                    # ep_r = -((sum_mbda_time + np.sum(proctime_matrix)/makespan))
+                else:
+                    ep_r = -(makespan / np.sum(env.prac_proc_time_matrix))
                 break
         make_spans.append(env.global_time)
+        ep_r_list.append(ep_r)
         # print(rewards - env.posRewards)
-    return np.array(make_spans)
+    return np.array(make_spans), np.array(ep_r_list)
 
 
 if __name__ == '__main__':

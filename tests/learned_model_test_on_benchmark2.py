@@ -137,8 +137,17 @@ if __name__ == '__main__':
     #              "-n_j-30-n_m-15-same size training03-04-11-20",
     #              "-n_j-30-n_m-20-same size training03-04-11-20"]
     # TODO:主要改动这个地方_1
-    path_list = ["-n_j-8-n_m-7-training like keores paper method03-15-21-44"]
-
+    # path_list = ["-n_j-10-n_m-10-ES, 5 features, designed reward07-18-21-51",
+    #              "-n_j-10-n_m-10-ES, seed=400, 5 features07-20-10-24",
+    #              "-n_j-10-n_m-10-run as 04-10-21-1904-24-12-56",
+    #              "-n_j-10-n_m-10-training on static env 0410 again04-24-16-24"]
+    path_list = ["-n_j-10-n_m-10-base fea add fdd fea, 6 features, designed reward07-23-22-38"]
+                 # "-n_j-10-n_m-10-ES, seed=400, 5 features07-20-10-24"]
+    #path_list = ["-n_j-10-n_m-10-training on static env without com_fea05-11-22-06"]
+    # path_list = ['-n_j-10-n_m-10-training on static env without prt_fea05-10-15-43']
+    # path_list = ['-n_j-10-n_m-10-training on static env without wait_time_fea05-09-10-10']
+    # path_list = ['-n_j-10-n_m-10-training on static without node_status_fea05-07-21-35']
+    # path_list = ['-n_j-10-n_m-10-training on static env with 5 features05-06-11-02']
     name_list = []
     for root, dirs, files in os.walk(parent_path + f'/benchmark', topdown=False):
         for name in files:
@@ -154,12 +163,12 @@ if __name__ == '__main__':
         # print(np.mean(ms_on_rule))
         # ms_on_rule_dict[rule] = ms_on_rule
         print("experiment test on benchmark with diff size model")
-    makespan_data_pd = pd.DataFrame(ms_on_model, index=name_list)
-    # TODO:主要改动这个地方_2
-    writer = pd.ExcelWriter(
-             f'Excel_save_files/n_j-8-n_m-7-training like keores paper method-03-15-21-44.xlsx')
-    makespan_data_pd.to_excel(writer, float_format='%.3f')
-    writer.save()
+        makespan_data_pd = pd.DataFrame(ms_on_model, index=name_list)
+        # TODO:主要改动这个地方_2
+        writer = pd.ExcelWriter(
+                 f'Excel_save_files/{path}.xlsx')
+        makespan_data_pd.to_excel(writer, float_format='%.3f')
+        writer.save()
 
     # path = './SavedNetwork/{}.pth'.format("mixed_training_1_99_01-27-22-59")
     # ppo.policy.load_state_dict(torch.load(path, map_location=torch.device('cpu')))
@@ -171,7 +180,7 @@ if __name__ == '__main__':
     #     test_on_all_instance(model=ppo)
 
     # print("experiment_1 result output success")
-    #
+
     # # experiment_2: test on all benchmark with stochastic processing time
     # np.random.seed(configs.np_seed_validation)
     # random.seed(configs.python_seed)

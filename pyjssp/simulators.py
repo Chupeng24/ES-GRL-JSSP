@@ -153,14 +153,50 @@ class JSSPSimulator(gym.Env, EzPickle):
             random.seed(sched_seed + 10)
         # self._machine_set = list(set(self.machine_matrix.flatten().tolist()))
 
-        return self.observe()
+        # create some feature
+        # create WKR feature
+        # wkr_fea = np.copy(self.processing_time_matrix).astype(np.single)
+        # wkr_fea = np.flip(wkr_fea, axis=1)
+        # wkr_fea = np.cumsum(wkr_fea, axis=1)
+        # wkr_fea = np.flip(wkr_fea, axis=1)
+        #
+        # # create fdd/mwkr fea
+        #
+        # fdd_fea = np.copy(self.processing_time_matrix).astype(np.single)
+        # fdd_fea = np.cumsum(fdd_fea, axis=1)
+        # for x in np.nditer(wkr_fea, op_flags=['readwrite']):
+        #     if x <= 0:
+        #         x[...] = 1e-6
+        # fdd_wkr_fea = fdd_fea / wkr_fea
+        #
+        # # normalization for wkr_fea_max
+        # wkr_fea_max = np.max(wkr_fea)
+        # wkr_fea_min = np.min(wkr_fea)
+        # self.wkr_fea = (wkr_fea - wkr_fea_min) / (wkr_fea_max-wkr_fea_min)
+        #
+        # # normalization for wkr_fea_max
+        # fdd_fea_max = np.max(fdd_fea)
+        # fdd_fea_min = np.min(fdd_fea)
+        # self.fdd_fea = (fdd_fea - fdd_fea_min)/ (fdd_fea_max-fdd_fea_min)
+        #
+        # # normalization for fdd_wkr_fea
+        # fdd_wkr_fea_max = np.max(fdd_wkr_fea)
+        # fdd_wkr_fea_min = np.min(fdd_wkr_fea)
+        # self.fdd_wkr_fea = (fdd_wkr_fea - fdd_wkr_fea_min) / (fdd_wkr_fea_max- fdd_wkr_fea_min)
 
-    def step(self, action=None,disrule_name=None):
+        self.ut = 0
+
+        return self.observe(reward='utilization')
+
+    def step(self, action=None,disrule_name=None,observe=True):
         self.transit(action,disrule_name)
-        _, _, _, r_trainsit, _, _, _ = self.observe()
-        _, cum_reward, _ = self.flush_trivial_ops()
+        en_obs = True
+        if disrule_name != None and observe == False:
+            en_obs = False
+        _, _, _, r_trainsit, _, _, _ = self.observe(reward='utilization',observe=en_obs)
+        _, cum_reward, _ = self.flush_trivial_ops(reward='utilization',observe=en_obs)
 
-        fea, adj, _, _, candidate, mask,done = self.observe()
+        fea, adj, _, _, candidate, mask,done = self.observe(reward='utilization',observe=en_obs)
         r = r_trainsit + cum_reward
         return fea, adj, _, r, candidate, mask,done
 
@@ -247,7 +283,7 @@ class JSSPSimulator(gym.Env, EzPickle):
         self.scheduled_op += 1
 
     # flush 冲洗；trivial 不重要的
-    def flush_trivial_ops(self, reward='idle_time', gamma=1.0):
+    def flush_trivial_ops(self, reward='idle_time', gamma=1.0,observe=True):
         done = False
         cum_reward = 0
         while True:
@@ -264,7 +300,7 @@ class JSSPSimulator(gym.Env, EzPickle):
                     num_ops = len(op_ids)
                     if num_ops == 1:
                         self.transit(op_ids[0])  # load trivial action
-                        _, _, _, r, _, _, _ = self.observe(reward)
+                        _, _, _, r, _, _, _ = self.observe(reward=reward, observe=observe)
                         cum_reward = r + gamma * cum_reward
                     else:
                         m_list.append(m_id)
@@ -332,7 +368,7 @@ class JSSPSimulator(gym.Env, EzPickle):
         return ret
 
     # 返回 状态、奖励、done
-    def observe(self, reward='idle_time', return_doable=True):
+    def observe(self, reward='idle_time', return_doable=True, observe=True):
         # A simple wrapper for JobManager's observe function
         # and return current time step reward r
         # check all jobs are done or not, then return done = True or False
@@ -345,149 +381,168 @@ class JSSPSimulator(gym.Env, EzPickle):
             done = True
         else:
             done = False
-        if reward == 'makespan':
-            if done:
-                r = -self.global_time
+        if observe == True:
+            if reward == 'makespan':
+                if done:
+                    r = -self.global_time
+                else:
+                    r = 0
+            # return reward as total sum of queues for all machines 等于所有机器的doable_ops的和
+            # 也即相当于doable_ops 就是机器的队列数据
+            elif reward == 'utilization':
+                t_cost = self.machine_manager.cal_total_cost()
+                r = -t_cost
+            elif reward == 'idle_time':
+                r = -float(len(self.machine_manager.get_idle_machines())) / float(self.num_machine)
+            elif reward == 'LBs':
+                r = - (self.LBs.max() - self.max_endTime)
+                self.max_endTime = self.LBs.max()
+            elif reward == 'machine utilization':
+                env_total = 0
+                for _, machine in self.machine_manager.machines.items():
+                    env_total += machine.total_proc
+                if self.global_time != 0:
+                    cur_ut = env_total/self.global_time
+                else:
+                    cur_ut = 0
+
+                r = cur_ut - self.ut
+                self.ut = cur_ut
+
+            flag = False
+            if flag:
+                g = self.job_manager.observe(detach_done=self.detach_done)
             else:
-                r = 0
-        # return reward as total sum of queues for all machines 等于所有机器的doable_ops的和
-        # 也即相当于doable_ops 就是机器的队列数据
-        elif reward == 'utilization':
-            t_cost = self.machine_manager.cal_total_cost()
-            r = -t_cost
+                g = 0
+            if flag:
+                if return_doable:
+                    if self.use_surrogate_index:
+                        do_ops_list, _ = self.get_doable_ops(return_list=True)
+                        for n in g.nodes:
+                            if n in do_ops_list:
+                                job_id, op_id = self.job_manager.sur_index_dict[n]
+                                m_id = self.job_manager[job_id][op_id].machine_id
+                                g.nodes[n]['doable'] = True
+                                g.nodes[n]['machine'] = m_id
+                            else:
+                                g.nodes[n]['doable'] = False
+                                g.nodes[n]['machine'] = 0
 
-        elif reward == 'idle_time':
-            r = -float(len(self.machine_manager.get_idle_machines())) / float(self.num_machine)
-        elif reward == 'LBs':
-            r = - (self.LBs.max() - self.max_endTime)
-            self.max_endTime = self.LBs.max()
-
-        flag = False
-        if flag:
-            g = self.job_manager.observe(detach_done=self.detach_done)
-        else:
-            g = 0
-        if flag:
             if return_doable:
                 if self.use_surrogate_index:
-                    do_ops_list, _ = self.get_doable_ops(return_list=True)
-                    for n in g.nodes:
-                        if n in do_ops_list:
-                            job_id, op_id = self.job_manager.sur_index_dict[n]
-                            m_id = self.job_manager[job_id][op_id].machine_id
-                            g.nodes[n]['doable'] = True
-                            g.nodes[n]['machine'] = m_id
+                    do_ops_list, undoable_mask = self.get_doable_ops(return_list=True)
+                    doable_mask = [bool(1-v) for v in do_ops_list]
+                    do_ops_list = do_ops_list[doable_mask]
+                    for job_id, job in self.job_manager.jobs.items():
+                        for op in job.ops:
+                            not_start_cond = not (op == job.ops[0])
+                            not_end_cond = not (op == job.ops[-1])
+                            done_cond = op.x['type'] == DONE_NODE_SIG
+                            if op.sur_id in do_ops_list:
+                                #job_id, op_id = self.job_manager.sur_index_dict[op.sur_id]
+                                #m_id = self.job_manager[job_id][op_id].machine_id
+                                op.doable_type = True
+                                #op.machine_id = m_id
+                            else:
+                                op.doable_type = False
+                                #op.machine_id = 0
+
+            prt_fea = np.zeros(self.num_ops, dtype=np.single)
+            com_fea = np.zeros(self.num_ops, dtype=np.single)
+            rem_op_fea = np.zeros(self.num_ops, dtype=np.single)
+            wait_time_fea = np.zeros(self.num_ops, dtype=np.single)
+            rem_time_fea = np.zeros(self.num_ops, dtype=np.single)
+            node_status_fea = np.zeros((self.num_ops, 3), dtype=np.single)
+            node_status_single_fea = np.zeros(self.num_ops, dtype=np.single)
+
+            if flag:
+                for n in g.nodes:
+                    if g.nodes[n]["type"] == NOT_START_NODE_SIG:
+                        node_status_fea[n] = [0]
+                    elif g.nodes[n]["type"] == PROCESSING_NODE_SIG:
+                        node_status_fea[n] = [0]
+                    elif g.nodes[n]["type"] == DONE_NODE_SIG:
+                        node_status_fea[n] = [1]
+                    else:
+                        raise RuntimeError("Not supporting node type")
+                    prt_fea[n] = g.nodes[n]['processing_time']
+                    com_fea[n] = g.nodes[n]["complete_ratio"]
+                    rem_op_fea[n] = g.nodes[n]['remaining_ops']
+                    wait_time_fea[n] = g.nodes[n]['waiting_time']
+                    rem_time_fea[n] = g.nodes[n]["remain_time"]
+            for job_id, job in self.job_manager.jobs.items():
+                for op in job.ops:
+                    n = op.sur_id
+                    if op.node_status == NOT_START_NODE_SIG:
+                        node_status_fea[n] = [1,0,0]
+                        node_status_single_fea[n] = -1
+                        prt_fea[n] = op.processing_time
+                    elif op.node_status == PROCESSING_NODE_SIG:
+                        node_status_fea[n] = [0,1,0]
+                        node_status_single_fea[n] = 0
+                        prt_fea[n] = op.processing_time
+                    elif op.node_status == DONE_NODE_SIG:
+                        node_status_fea[n] = [0,0,1]
+                        node_status_single_fea[n] = 1
+                        if self.proctime_std:
+                            job_id, step_id = op._id
+                            prt_fea[n] =  self.prac_proc_time_matrix[job_id][step_id]
                         else:
-                            g.nodes[n]['doable'] = False
-                            g.nodes[n]['machine'] = 0
+                            prt_fea[n] = op.processing_time
+                    else:
+                        raise RuntimeError("Not supporting node type")
+                    com_fea[n] = op.complete_ratio
+                    rem_op_fea[n] = op.remaining_ops
+                    wait_time_fea[n] = op.waiting_time
+                    rem_time_fea[n] = op.remaining_time
+            # node_status_single_fea = node_status_single_fea.reshape(self.num_jobs,self.num_steps)
+            # for job_id, job in self.job_manager.jobs.items():
+            #     for op in job.ops:
+            #         not_start_cond = (op.node_status == NOT_START_NODE_SIG)
+            #         processing_cond = (op.node_status == PROCESSING_NODE_SIG)
+            #         done_cond = (op.node_status == DONE_NODE_SIG)
+            #         # if not_start_cond:
+            prt_fea_max = np.max(prt_fea)
+            prt_fea_min = np.min(prt_fea)
+            prt_fea = (prt_fea - prt_fea_min) / (prt_fea_max-prt_fea_min)
+            #prt_fea = (prt_fea - np.mean(prt_fea))/np.std(prt_fea)
 
-        if return_doable:
-            if self.use_surrogate_index:
-                do_ops_list, undoable_mask = self.get_doable_ops(return_list=True)
-                doable_mask = [bool(1-v) for v in do_ops_list]
-                do_ops_list = do_ops_list[doable_mask]
-                for job_id, job in self.job_manager.jobs.items():
-                    for op in job.ops:
-                        not_start_cond = not (op == job.ops[0])
-                        not_end_cond = not (op == job.ops[-1])
-                        done_cond = op.x['type'] == DONE_NODE_SIG
-                        if op.sur_id in do_ops_list:
-                            #job_id, op_id = self.job_manager.sur_index_dict[op.sur_id]
-                            #m_id = self.job_manager[job_id][op_id].machine_id
-                            op.doable_type = True
-                            #op.machine_id = m_id
-                        else:
-                            op.doable_type = False
-                            #op.machine_id = 0
-
-        prt_fea = np.zeros(self.num_ops, dtype=np.single)
-        com_fea = np.zeros(self.num_ops, dtype=np.single)
-        rem_op_fea = np.zeros(self.num_ops, dtype=np.single)
-        wait_time_fea = np.zeros(self.num_ops, dtype=np.single)
-        rem_time_fea = np.zeros(self.num_ops, dtype=np.single)
-        node_status_fea = np.zeros((self.num_ops, 3), dtype=np.single)
-        node_status_single_fea = np.zeros(self.num_ops, dtype=np.single)
-
-        if flag:
-            for n in g.nodes:
-                if g.nodes[n]["type"] == NOT_START_NODE_SIG:
-                    node_status_fea[n] = [0]
-                elif g.nodes[n]["type"] == PROCESSING_NODE_SIG:
-                    node_status_fea[n] = [0]
-                elif g.nodes[n]["type"] == DONE_NODE_SIG:
-                    node_status_fea[n] = [1]
-                else:
-                    raise RuntimeError("Not supporting node type")
-                prt_fea[n] = g.nodes[n]['processing_time']
-                com_fea[n] = g.nodes[n]["complete_ratio"]
-                rem_op_fea[n] = g.nodes[n]['remaining_ops']
-                wait_time_fea[n] = g.nodes[n]['waiting_time']
-                rem_time_fea[n] = g.nodes[n]["remain_time"]
-        for job_id, job in self.job_manager.jobs.items():
-            for op in job.ops:
-                n = op.sur_id
-                if op.node_status == NOT_START_NODE_SIG:
-                    node_status_fea[n] = [1,0,0]
-                    node_status_single_fea[n] = -1
-                elif op.node_status == PROCESSING_NODE_SIG:
-                    node_status_fea[n] = [0,1,0]
-                    node_status_single_fea[n] = 0
-                elif op.node_status == DONE_NODE_SIG:
-                    node_status_fea[n] = [0,0,1]
-                    node_status_single_fea[n] = 1
-                else:
-                    raise RuntimeError("Not supporting node type")
-                prt_fea[n] = op.processing_time
-                com_fea[n] = op.complete_ratio
-                rem_op_fea[n] = op.remaining_ops
-                wait_time_fea[n] = op.waiting_time
-                rem_time_fea[n] = op.remaining_time
-        # node_status_single_fea = node_status_single_fea.reshape(self.num_jobs,self.num_steps)
-        # for job_id, job in self.job_manager.jobs.items():
-        #     for op in job.ops:
-        #         not_start_cond = (op.node_status == NOT_START_NODE_SIG)
-        #         processing_cond = (op.node_status == PROCESSING_NODE_SIG)
-        #         done_cond = (op.node_status == DONE_NODE_SIG)
-        #         # if not_start_cond:
-        prt_fea_max = np.max(prt_fea)
-        prt_fea_min = np.min(prt_fea)
-        prt_fea = (prt_fea - prt_fea_min) / (prt_fea_max-prt_fea_min)
-        #prt_fea = (prt_fea - np.mean(prt_fea))/np.std(prt_fea)
-
-        if np.max(wait_time_fea) == 0:
-            wait_time_fea = wait_time_fea.reshape(self.num_ops, 1)
-        else:
-            wait_time_fea = wait_time_fea.reshape(self.num_ops, 1) / np.max(wait_time_fea)
-        #
-        # if np.max(rem_time_fea) == 0:
-        #     rem_time_fea = rem_time_fea.reshape(self.num_ops, 1)
-        # else:
-        #     #print("np.max(rem_time_fea):",np.max(rem_time_fea))
-        #     rem_time_fea = rem_time_fea.reshape(self.num_ops, 1) / np.max(rem_time_fea)
-
-
-        fea = np.concatenate((rem_op_fea.reshape(self.num_ops, 1)/self.num_machine,
-                              # rem_time_fea,
-                              com_fea.reshape(self.num_ops, 1),
-                              #self.FDDMWKR.reshape(self.num_ops,1),
-                              prt_fea.reshape(self.num_ops, 1),
-                              wait_time_fea.reshape(self.num_ops, 1),
-                              # com_fea.reshape(self.num_ops, 1)
-                              node_status_single_fea.reshape(self.num_ops, 1)),axis=1)
-        # rem_op_fea.reshape(self.num_ops, 1),
-        # wait_time_fea.reshape(self.num_ops, 1)/np.max(wait_time_fea)), axis=1)
-        # rem_time_fea.reshape(self.num_ops, 1)), axis=1)
-        candidate, undoable_mask = self.get_doable_ops(return_list=True)
-        # update adj matrix
-        for m_id,m in self.machine_manager.machines.items():
-            if len(m.done_ops) ==0 or len(m.done_ops)==1:
-                pass
+            if np.max(wait_time_fea) == 0:
+                wait_time_fea = wait_time_fea.reshape(self.num_ops, 1)
             else:
-                op = m.done_ops[-1]
-                pre_op = m.done_ops[-2]
-                self.Adj[op.sur_id, pre_op.sur_id] = 1
-                # self.Adj[pre_op.sur_id, op.sur_id] = 1
-        # candidate = np.array(candidate,dtype=np.int64)
+                wait_time_fea = wait_time_fea.reshape(self.num_ops, 1) / np.max(wait_time_fea)
+            #
+            # if np.max(rem_time_fea) == 0:
+            #     rem_time_fea = rem_time_fea.reshape(self.num_ops, 1)
+            # else:
+            #     #print("np.max(rem_time_fea):",np.max(rem_time_fea))
+            #     rem_time_fea = rem_time_fea.reshape(self.num_ops, 1) / np.max(rem_time_fea)
+
+
+            fea = np.concatenate((rem_op_fea.reshape(self.num_ops, 1)/self.num_machine,
+                                  com_fea.reshape(self.num_ops, 1),
+                                  prt_fea.reshape(self.num_ops, 1),
+                                  wait_time_fea.reshape(self.num_ops, 1),
+                                  # self.wkr_fea.reshape(self.num_ops, 1),
+                                  # self.fdd_fea.reshape(self.num_ops,1),
+                                  node_status_single_fea.reshape(self.num_ops, 1)),axis=1)
+            # rem_op_fea.reshape(self.num_ops, 1),
+            # wait_time_fea.reshape(self.num_ops, 1)/np.max(wait_time_fea)), axis=1)
+            # rem_time_fea.reshape(self.num_ops, 1)), axis=1)
+            candidate, undoable_mask = self.get_doable_ops(return_list=True)
+            # update adj matrix
+            for m_id,m in self.machine_manager.machines.items():
+                if len(m.done_ops) ==0 or len(m.done_ops)==1:
+                    pass
+                else:
+                    op = m.done_ops[-1]
+                    pre_op = m.done_ops[-2]
+                    self.Adj[op.sur_id, pre_op.sur_id] = 1
+                    # self.Adj[pre_op.sur_id, op.sur_id] = 1
+            # candidate = np.array(candidate,dtype=np.int64)
+        elif observe == False:
+            candidate, undoable_mask = self.get_doable_ops(return_list=True)
+            fea, self.Adj, g, r, = 0, 0, 0, 0
         return fea, self.Adj, g, float(r), candidate, undoable_mask, done
 
     def plot_graph(self, draw=True,
