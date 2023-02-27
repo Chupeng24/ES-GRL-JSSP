@@ -29,7 +29,7 @@ N_MACHINES_N = params.Nn_m
 
 
 from pyjssp.simulators import JSSPSimulator
-from PPO_jssp_multiInstances_update import PPO
+from PPO_train import PPO
 env = JSSPSimulator(num_jobs=None, num_machines=None)
 
 ppo = PPO(configs.lr, configs.gamma, configs.k_epochs, configs.eps_clip,

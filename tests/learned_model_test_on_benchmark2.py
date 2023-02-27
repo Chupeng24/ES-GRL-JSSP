@@ -1,6 +1,6 @@
 from Params import *
 import os
-from PPO_jssp_multiInstances_update import PPO
+from PPO_train import PPO
 from mb_agg import *
 from agent_utils import *
 from pyjssp.simulators import JSSPSimulator

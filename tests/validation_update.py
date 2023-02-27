@@ -98,7 +98,7 @@ if __name__ == '__main__':
     N_JOBS_N = params.Nn_j
     N_MACHINES_N = params.Nn_m
 
-    from PPO_jssp_multiInstances_update import PPO
+    from PPO_train import PPO
     import torch
 
     ppo = PPO(configs.lr, configs.gamma, configs.k_epochs, configs.eps_clip,
