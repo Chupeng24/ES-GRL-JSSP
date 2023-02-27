@@ -67,8 +67,3 @@ if __name__ == "__main__":
     print(scount)
     print(target_list)
     print(count)
-
-    # process:
-    # # 如果是单个目录，就直接写出路径，然后运行
-    # # 如果是某个系列instance，返回各个instance 文件名，然后衔接入大路径下，一个一个运行
-    # # 如果是 某个instance 大小的，就要用到字典了,

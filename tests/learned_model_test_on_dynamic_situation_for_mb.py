@@ -213,7 +213,7 @@ if __name__ == '__main__':
         #     print("Dynamic experiment by model with non-zero states result output success")
 
         # experiment_4: test on all benchmark with machine breakdown
-        output_flag_4 = False
+        output_flag_4 = True
         model_list = ['-n_j-10-n_m-10-training on static env04-10-21-19']
         Ag_list = [0.02, 0.05, 0.08]
         # Ag_list = [0.05]

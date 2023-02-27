@@ -1,11 +1,8 @@
-import math
 import random
 from collections import OrderedDict
 import numpy as np
-# from pyjssp.operationHelpers import Operation, NodeProcessingTimeOperation
 from pyjssp.configs import (PROCESSING_NODE_SIG,
-                            DONE_NODE_SIG,
-                            DELAYED_NODE_SIG)
+                            DONE_NODE_SIG)
 
 
 class MachineManager:
@@ -31,8 +28,6 @@ class MachineManager:
             possible_ops = []
             for job_id, step_id in zip(job_ids, step_ids):
                 possible_ops.append(job_manager[job_id][step_id])
-            # m_id += 1  # To make machine index starts from 1
-            # self.machines[m_id] = Machine(m_id, possible_ops, delay, verbose)
 
             self.machines[m_id] = Machine(m_id, possible_ops, verbose,
                                           proctime_std,
@@ -41,9 +36,9 @@ class MachineManager:
                                           mbrk_Ag,
                                           brk_rep_time_table)
 
-    def do_processing(self, t, shor_interval):
+    def do_processing(self, env,  t, shor_interval):
         for _, machine in self.machines.items():
-            machine.do_processing(t, shor_interval)
+            machine.do_processing(env, t, shor_interval)
 
     def load_op(self, machine_id, op, t):
         self.machines[machine_id].load_op(op, t)
@@ -122,7 +117,8 @@ class NodeProcessingTimeMachineManager(MachineManager):
 
 
 class Machine:
-    def __init__(self, machine_id, possible_ops, verbose,proctime_std,prac_proc_time_matrix,temp1,mbrk_Ag,brk_rep_time_table):
+    def __init__(self, machine_id, possible_ops, verbose, proctime_std,
+                 prac_proc_time_matrix, temp1, mbrk_Ag, brk_rep_time_table):
         self.machine_id = machine_id
         self.possible_ops = possible_ops
         self.remain_ops = possible_ops
@@ -141,9 +137,11 @@ class Machine:
         self.mbrk_Ag = mbrk_Ag
         self.brk_rep_time_table = brk_rep_time_table
         self.normal_flag = True
+        # set for machine breakdown situation
         if self.mbrk_Ag is not None and self.mbrk_Ag > 0:
             self.mbdatime = 0
-
+            self.mbd_inf_op_id = []
+            self.temp_op_adj = None
         self.total_proc = 0
 
     def __str__(self):
@@ -156,14 +154,6 @@ class Machine:
         ret = future_work_exist_cond and currently_not_processing_cond and self.normal_flag  # and not_wait_for_delayed_cond
         return ret
 
-    # def wait_for_delayed(self):
-    #     wait_for_delayed_cond = self.delayed_op is not None
-    #     ret = wait_for_delayed_cond
-    #     if wait_for_delayed_cond:
-    #         delayed_op_ready_cond = self.delayed_op.prev_op.node_status == DONE_NODE_SIG
-    #         ret = ret and not delayed_op_ready_cond
-    #     return ret
-
     def doable_ops(self):
         # doable_ops are subset of remain_ops.
         # some ops are doable when the prev_op is 'done' or 'processing' or 'start'
@@ -174,23 +164,10 @@ class Machine:
                 doable_ops.append(op)
             else:
                 prev_done = op.prev_op.node_status == DONE_NODE_SIG
-                # prev_process = op.prev_op.node_status == PROCESSING_NODE_SIG
-                # first_op = not bool(self.done_ops)
-                # if self.delay:
-                #     # each machine's first processing operation should not be a reserved operation
-                #     if first_op:
-                #         cond = prev_done
-                #     else:
-                #         cond = (prev_done or prev_process)
-                # else:
-                # cond = prev_done
-
-                # if cond:
                 if prev_done:
                     doable_ops.append(op)
                 else:
                     pass
-
         return doable_ops
 
     @property
@@ -219,13 +196,7 @@ class Machine:
         return not self.remain_ops
 
     def load_op(self, t, op):
-
-        # Procedures for double-checkings
-        # If machine waits for the delayed job is done:
-        # if self.wait_for_delayed():
-        #     raise RuntimeError("Machine {} waits for the delayed job {} but load {}".format(self.machine_id,
-        #                                                                           print(self.delayed_op), print(op)))
-
+        # Procedures for double-checkings)
         # ignore input when the machine is not available
         if not self.available():
             raise RuntimeError("Machine {} is not available".format(self.machine_id))
@@ -238,14 +209,7 @@ class Machine:
             raise RuntimeError("Machine {} can't perform ops {}{}".format(self.machine_id,
                                                                           op.job_id,
                                                                           op.step_id))
-        # Essential condition for checking whether input is delayed
-        # if delayed then, flush dealed_op attr
-        # if op == self.delayed_op:
-        #     if self.verbose:
-        #         print("[DELAYED OP LOADED] / MACHINE {} / {} / at {}".format(self.machine_id, op, t))
-        #     self.delayed_op = None
-        #
-        # else:
+
         if self.verbose:
             print("[LOAD] / Machine {} / {} on at {}".format(self.machine_id, op, t))
 
@@ -288,12 +252,8 @@ class Machine:
         self.prev_op = self.current_op
         self.current_op = None
         self.remaining_time = -1
-        # if self.mbrk_Ag:
-        #     if hasattr(self, 'trans_interval'):
-        #         if len(self.possible_ops) == self.num_done_ops:
-        #             self.trans_interval = float("inf")
 
-    def do_processing(self, t, shor_interval):
+    def do_processing(self, env, t, shor_interval):
         if self.normal_flag:
             if self.remaining_time > 0:  # When machine do some operation
                 if self.current_op is not None:
@@ -305,24 +265,17 @@ class Machine:
                         if self.verbose:
                             print("[OP DONE] : / Machine  {} / Op {}/ t = {} ".format(self.machine_id, self.current_op, t))
                         self.unload(t)
-                        # TODO when the correspoding operation have finished or is not exist,the node embedding as zero vetor
-                # to compute idle_time reward, we need to count delayed_time
-                # elif self.delayed_op is not None:
-                #     print("have delayed op")
-                #     self.delayed_op.delayed_time += 1
-                #     self.delayed_op.remaining_time -= 1             #??????
                 self.remaining_time -= shor_interval
 
         doable_ops = self.doable_ops()
         if doable_ops:
-            for op in doable_ops:
-                op.waiting_time += shor_interval
+            if self.normal_flag:
+                for op in doable_ops:
+                    op.waiting_time += shor_interval
         else:
             pass
         if self.mbrk_Ag:
             if self.normal_flag == False:
-                # if self.current_op is not None or len(doable_ops)>0:
-                # if self.current_op is not None:
                 if self.current_op is not None or len(doable_ops)>0:
                     self.mbdatime += shor_interval
                     # if self.current_op is not None:
@@ -337,56 +290,36 @@ class Machine:
                     #       "time:",t,
                     #       "interval:",shor_interval)
                     # print("______________________________________")
-
         if self.mbrk_Ag:
             flag = 0
-            for idx, val in enumerate(self.brk_rep_time_table[self.machine_id-1]): #machin_id start form 1
+            for idx, val in enumerate(self.brk_rep_time_table[self.machine_id-1]): # machin_id start form 1
                 if t < val:
                     flag = idx
                     self.trans_interval = val - t
                     break
-            if flag % 2 == 0:
+            if flag % 2 == 0:    # judge wether machine
                 self.normal_flag = True
-                # if t == 53 and self.machine_id == 4:
-                #     print("++++++++++++++++++++++++++++++++++++++++++++++++++++")
-                #     print("trans_interval:", self.trans_interval)
-                #     print("++++++++++++++++++++++++++++++++++++++++++++++++++++")
-                # if origin_normal_flag != self.normal_flag:
-                # print("[Machine] : / Machine {} is repaired / t = {} ".format(self.machine_id, t))
+                if self.temp_op_adj is not None:
+                    env.Adj[self.mbd_inf_op_id] = self.temp_op_adj
+                    self.temp_op_adj = None
             else:
                 self.normal_flag = False
-
-                mbd_inf_op_id = []
+                self.mbd_inf_op_id = []
                 if self.current_op is not None:
-                    # infer_op_id.append(self.current_op.sur_id)
-                    # cur_op = self.current_op
                     for op in self.current_op.job.ops[self.current_op.step_id:]:
-                        mbd_inf_op_id.append(op.sur_id)
+                        self.mbd_inf_op_id.append(op.sur_id)
 
-                for dis_op in self.remain_ops:
-                    for op in self.current_op.job.ops[dis_op.step_id:]:
-                        mbd_inf_op_id.append(op.sur_id)
+                if self.remain_ops is not None:
+                    for dis_op in self.remain_ops:
+                        for op in dis_op.job.ops[dis_op.step_id:]:
+                            self.mbd_inf_op_id.append(op.sur_id)
 
-
-
-
-
-
-                # if origin_normal_flag != self.normal_flag:
-                #     print("[Machine] : / Machine {} broken / t = {} ".format(self.machine_id, t))
+                self.temp_op_adj = env.Adj[self.mbd_inf_op_id]
+                env.Adj[self.mbd_inf_op_id] = np.zeros((len(self.mbd_inf_op_id), env.Adj.shape[1]))
 
     def transit(self, t, a):
         if self.available():  # Machine is ready to process.
             if a.processible():  # selected action is ready to be loaded right now.
                 self.load_op(t, a)
-            # else:  # When input operation turns out to be 'delayed'
-            #     a.node_status = DELAYED_NODE_SIG
-            #     print("have delay operation")
-            #     self.delayed_op = a
-            #     self.delayed_op.remaining_time = a.processing_time + a.prev_op.remaining_time
-            #     self.remaining_time = a.processing_time + a.prev_op.remaining_time
-            #     self.current_op = None  # MACHINE is now waiting for delayed ops
-            #     if self.verbose:
-            #         print("[DELAYED OP CHOSEN] : / Machine  {} / Op {}/ t = {} ".format(self.machine_id, self.delayed_op, t))
         else:
             raise RuntimeError("Access to not available machine")

@@ -60,20 +60,6 @@ class ActorCritic(nn.Module):
                                                  padded_nei=padded_nei,
                                                  adj=adj)
         # prepare policy feature: concat omega feature with global feature
-        # temp = candidate.unsqueeze(-1)
-
-        # try:
-        #     dummy = candidate.unsqueeze(-1).expand(-1, self.n_j, h_nodes.size(-1))
-        #     candidate_feature = torch.gather(h_nodes.reshape(dummy.size(0), -1, dummy.size(-1)), 1, dummy)
-        # except RuntimeError as e:
-        #     # print(dummy)
-        #     print(h_nodes)
-        #     print(candidate)
-        #     print(candidate.shape)
-        #     dummy = candidate.unsqueeze(-1).expand(-1, self.n_j, h_nodes.size(-1))
-        #     candidate_feature = torch.gather(h_nodes.reshape(dummy.size(0), -1, dummy.size(-1)), 1, dummy)
-        #     # print(dummy.size)
-        # dummy = candidate.unsqueeze(-1).expand(-1, self.n_j, h_nodes.size(-1))
         dummy = candidate.unsqueeze(-1).expand(-1, n_j, h_nodes.size(-1))
         candidate_feature = torch.gather(h_nodes.reshape(dummy.size(0), -1, dummy.size(-1)), 1, dummy)
         h_pooled_repeated = h_pooled.unsqueeze(1).expand_as(candidate_feature)
@@ -86,8 +72,6 @@ class ActorCritic(nn.Module):
         # calculate work remaining and normalize it with job size
         wkr = (mask_right_half * durfea2mat).sum(dim=-1, keepdim=True)/self.n_ops_perjob'''
 
-        # concatenate feature
-        # concateFea = torch.cat((wkr, candidate_feature, h_pooled_repeated), dim=-1)
         concateFea = torch.cat((candidate_feature, h_pooled_repeated), dim=-1)
         candidate_scores = self.actor(concateFea)
 

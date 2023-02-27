@@ -230,7 +230,7 @@ class JSSPSimulator(gym.Env, EzPickle):
         #     shor_interval = 1
 
         self.global_time += shor_interval
-        self.machine_manager.do_processing(self.global_time, shor_interval)
+        self.machine_manager.do_processing(self, self.global_time, shor_interval)
 
     def transit(self, action=None,disrule_name=None):
         if action is None and disrule_name is None:

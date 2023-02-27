@@ -213,7 +213,6 @@ def main(torch_seed, other_seed):
 
     seed = other_seed  # seed 1,2,3   # pytorch seed 600, 400, 200
     torch.manual_seed(torch_seed)
-    ##############################################
     if torch.cuda.is_available():
         print("using GPU")
         torch.cuda.manual_seed_all(seed)  # torch_seed=600
@@ -374,7 +373,7 @@ if __name__ == '__main__':
 
     # main(torch_seed=600,other_seed=1)
     # main(torch_seed=600, other_seed=2)
-    # main(torch_seed=600, other_seed=3)   # not converge
+    # main(torch_seed=600, other_seed=3)
     # main(torch_seed=600, other_seed=4)
 
     # main(torch_seed=400,other_seed=1)
