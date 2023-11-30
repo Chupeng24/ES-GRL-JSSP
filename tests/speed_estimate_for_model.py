@@ -80,7 +80,7 @@ if __name__ == '__main__':
               hidden_dim_actor=configs.hidden_dim_actor,
               num_mlp_layers_critic=configs.num_mlp_layers_critic,
               hidden_dim_critic=configs.hidden_dim_critic)
-    path = './SavedNetwork/{}.pth'.format("-n_j-10-n_m-10-training on static env 0410 again04-24-16-24")
+    path = './SavedNetwork/{}.pth'.format("-n_j-10-n_m-10-training on static env04-10-21-19")
     ppo.policy.load_state_dict(torch.load(path, map_location=torch.device('cpu')))
 
     ###########################################################################

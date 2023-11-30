@@ -71,10 +71,12 @@ def evaluate(env, agent, seed):
     # random.seed(configs.python_seed)
     # n_m = np.random.randint(5, 10)
     # n_j = np.random.randint(n_m, 10)
+    np.random.seed(seed)
+    # n_m = np.random.randint(2, 11, 1)[0]
+    # n_j = np.random.randint(2, 11, 1)[0]
     n_m = 10
     n_j = 10
     data_generator = uni_instance_gen
-    np.random.seed(seed)
     proctime_matrix, m_matrix = data_generator(n_j=n_j, n_m=n_m, low=configs.low, high=configs.high)
     # proctime_matrix, m_matrix = vali_data3[0]
     fea, adj, _, reward, candidate, mask, done = env.reset(machine_matrix=m_matrix, processing_time_matrix=proctime_matrix)
@@ -199,7 +201,7 @@ def main(torch_seed, other_seed):
     n_m = 10
     n_j = 10
     TIMESTAMP = time.strftime("%m-%d-%H-%M", time.localtime(time.time()))
-    comment = f"ES, 5 fea, torch_seed=f'{torch_seed}', other_seed=f'{other_seed}', original fitness func"
+    comment = f"ES, 5 fea, torch_seed=f'{torch_seed}', other_seed=f'{other_seed}', original fitness func and 10x10" # original fitness func
 
     writer = SummaryWriter(
         log_dir=f'runs_multiInstance/' + TIMESTAMP + '-n_j-' + f'{n_j}' + '-n_m-' + f'{n_m}-' + comment)
@@ -210,12 +212,17 @@ def main(torch_seed, other_seed):
     for i in range(100):
         n_m = 10
         n_j = 10
+        # n_m = np.random.randint(2, 11, 1)[0]
+        # n_j = np.random.randint(2, 11, 1)[0]
         proctime_matrix, m_matrix = data_generator(n_j=n_j, n_m=n_m, low=configs.low, high=configs.high)
         vali_data3.append((proctime_matrix, m_matrix))
 
     seed = other_seed  # seed 1,2,3   # pytorch seed 600, 400, 200
     torch.manual_seed(torch_seed)
     ##############################################
+
+
+
     if torch.cuda.is_available():
         print("using GPU")
         torch.cuda.manual_seed_all(seed)  # torch_seed=600
@@ -224,7 +231,7 @@ def main(torch_seed, other_seed):
     np.random.seed(seed)
     # random.seed(700)
     # np.random.seed(700)
-    seed_array = np.random.randint(low=0, high=1800 * 200, size=1800 * 200)  # size set to 1800
+    seed_array = np.random.randint(low=0, high=3000 * 200, size=3000 * 200)  # size set to 1800
     seed_idx = 0
 
     # load the net
@@ -249,17 +256,17 @@ def main(torch_seed, other_seed):
     vali_result, ep_r = validate(vali_data3, ppo.policy)
     vali_result = vali_result.mean()
     ep_r = ep_r.mean()
-    print('The validation quality is:', vali_result)
+    # print('The validation quality is:', vali_result)
 
     # for item in vali_result:
     #     print(item)
     writer.add_scalar("vali_result", vali_result, 0)
     writer.add_scalar("ep_r", ep_r, 0)
-    print(0, "vali_result:", vali_result, "ep_r:", ep_r)
+    # print(0, "vali_result:", vali_result, "ep_r:", ep_r)
     record = vali_result
     # net = Net(env.observation_space.shape[0], env.action_space.n)
     # print(net)
-    for i_update in range(1600):
+    for i_update in range(3000):
         t_start = time.time()
         actor_batch_noise = []
         gnn_batch_noise = []
@@ -291,7 +298,7 @@ def main(torch_seed, other_seed):
 
         writer.add_scalar("vali_result", vali_result, (i_update + 1) * 200)
         writer.add_scalar("ep_r", ep_r, (i_update + 1) * 200)
-        print((i_update + 1) * 200, "vali_result:", vali_result, "ep_r:", ep_r)
+        # print((i_update + 1) * 200, "vali_result:", vali_result, "ep_r:", ep_r)
 
             # NOISE_STD = 0.025
         # for item in vali_result:
@@ -331,9 +338,37 @@ if __name__ == "__main__":
     #
     # main(torch_seed=600, other_seed=1)
     # main(torch_seed=600, other_seed=2)
-    main(torch_seed=200, other_seed=5)
-    main(torch_seed=200, other_seed=7)
-    main(torch_seed=400, other_seed=5)
-    main(torch_seed=400, other_seed=7)
-    main(torch_seed=600, other_seed=5)
-    main(torch_seed=600, other_seed=7)
+    # main(torch_seed=200, other_seed=5)
+    # main(torch_seed=200, other_seed=7)
+    # main(torch_seed=400, other_seed=5)
+    # main(torch_seed=400, other_seed=7)
+    # main(torch_seed=600, other_seed=5)
+    # main(torch_seed=600, other_seed=7)
+
+    # sample n and m from 6 to 10
+    # main(torch_seed=200, other_seed=1)
+    # main(torch_seed=400, other_seed=1)
+    # main(torch_seed=600, other_seed=1)
+    # TODO: 1. change the seed of the environment
+    # TODO: if converge, change the fitness function
+    # sample n and m from 6 to 10
+    # main(torch_seed=200, other_seed=1)
+    # main(torch_seed=400, other_seed=1)
+    # main(torch_seed=600, other_seed=1)
+    # main(torch_seed=200, other_seed=2)
+    # main(torch_seed=400, other_seed=2)
+    # main(torch_seed=600, other_seed=2)
+    #
+    # main(torch_seed=200, other_seed=4)
+    # main(torch_seed=400, other_seed=4)
+    # main(torch_seed=600, other_seed=4)
+    main(torch_seed=200, other_seed=1)
+    main(torch_seed=200, other_seed=2)
+    main(torch_seed=200, other_seed=4)
+    main(torch_seed=400, other_seed=1)
+    main(torch_seed=400, other_seed=2)
+    main(torch_seed=400, other_seed=4)
+    main(torch_seed=600, other_seed=1)
+    main(torch_seed=600, other_seed=2)
+    main(torch_seed=600, other_seed=4)
+

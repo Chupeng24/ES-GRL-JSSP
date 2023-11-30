@@ -409,24 +409,24 @@ class JSSPSimulator(gym.Env, EzPickle):
                 r = cur_ut - self.ut
                 self.ut = cur_ut
 
-            flag = False
-            if flag:
-                g = self.job_manager.observe(detach_done=self.detach_done)
-            else:
-                g = 0
-            if flag:
-                if return_doable:
-                    if self.use_surrogate_index:
-                        do_ops_list, _ = self.get_doable_ops(return_list=True)
-                        for n in g.nodes:
-                            if n in do_ops_list:
-                                job_id, op_id = self.job_manager.sur_index_dict[n]
-                                m_id = self.job_manager[job_id][op_id].machine_id
-                                g.nodes[n]['doable'] = True
-                                g.nodes[n]['machine'] = m_id
-                            else:
-                                g.nodes[n]['doable'] = False
-                                g.nodes[n]['machine'] = 0
+            # flag = False
+            # if flag:
+            #     g = self.job_manager.observe(detach_done=self.detach_done)
+            # else:
+            #     g = 0
+            # if flag:
+            #     if return_doable:
+            #         if self.use_surrogate_index:
+            #             do_ops_list, _ = self.get_doable_ops(return_list=True)
+            #             for n in g.nodes:
+            #                 if n in do_ops_list:
+            #                     job_id, op_id = self.job_manager.sur_index_dict[n]
+            #                     m_id = self.job_manager[job_id][op_id].machine_id
+            #                     g.nodes[n]['doable'] = True
+            #                     g.nodes[n]['machine'] = m_id
+            #                 else:
+            #                     g.nodes[n]['doable'] = False
+            #                     g.nodes[n]['machine'] = 0
 
             if return_doable:
                 if self.use_surrogate_index:
@@ -455,21 +455,21 @@ class JSSPSimulator(gym.Env, EzPickle):
             node_status_fea = np.zeros((self.num_ops, 3), dtype=np.single)
             node_status_single_fea = np.zeros(self.num_ops, dtype=np.single)
 
-            if flag:
-                for n in g.nodes:
-                    if g.nodes[n]["type"] == NOT_START_NODE_SIG:
-                        node_status_fea[n] = [0]
-                    elif g.nodes[n]["type"] == PROCESSING_NODE_SIG:
-                        node_status_fea[n] = [0]
-                    elif g.nodes[n]["type"] == DONE_NODE_SIG:
-                        node_status_fea[n] = [1]
-                    else:
-                        raise RuntimeError("Not supporting node type")
-                    prt_fea[n] = g.nodes[n]['processing_time']
-                    com_fea[n] = g.nodes[n]["complete_ratio"]
-                    rem_op_fea[n] = g.nodes[n]['remaining_ops']
-                    wait_time_fea[n] = g.nodes[n]['waiting_time']
-                    rem_time_fea[n] = g.nodes[n]["remain_time"]
+            # if flag:
+            #     for n in g.nodes:
+            #         if g.nodes[n]["type"] == NOT_START_NODE_SIG:
+            #             node_status_fea[n] = [0]
+            #         elif g.nodes[n]["type"] == PROCESSING_NODE_SIG:
+            #             node_status_fea[n] = [0]
+            #         elif g.nodes[n]["type"] == DONE_NODE_SIG:
+            #             node_status_fea[n] = [1]
+            #         else:
+            #             raise RuntimeError("Not supporting node type")
+            #         prt_fea[n] = g.nodes[n]['processing_time']
+            #         com_fea[n] = g.nodes[n]["complete_ratio"]
+            #         rem_op_fea[n] = g.nodes[n]['remaining_ops']
+            #         wait_time_fea[n] = g.nodes[n]['waiting_time']
+            #         rem_time_fea[n] = g.nodes[n]["remain_time"]
             for job_id, job in self.job_manager.jobs.items():
                 for op in job.ops:
                     n = op.sur_id
