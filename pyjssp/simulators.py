@@ -8,14 +8,9 @@ from gym.utils import EzPickle
 import matplotlib.pyplot as plt
 import networkx as nx
 
-from pyjssp.jobShopSamplers import jssp_sampling
-from pyjssp.operationHelpers import (JobManager,
-                                     NodeProcessingTimeJobManager,
-                                     get_edge_color_map,
-                                     get_node_color_map)
-from pyjssp.machineHelpers import (MachineManager,
-                                   NodeProcessingTimeMachineManager)
-from pyjssp.configs import (N_SEP, SEP, NEW)
+from pyjssp.operationHelpers import JobManager
+from pyjssp.machineHelpers import MachineManager
+from pyjssp.configs import N_SEP
 from pyjssp.configs import (NOT_START_NODE_SIG,
                             PROCESSING_NODE_SIG,
                             DONE_NODE_SIG)
@@ -186,6 +181,16 @@ class JSSPSimulator(gym.Env, EzPickle):
 
         self.ut = 0
 
+        # self.op_fea = np.zeros((self.num_ops,7), dtype=np.single)
+        # for job_id, job in self.job_manager.jobs.items():
+        #     for op in job.ops:
+        #         n = op.sur_id
+        #         self.op_fea[n, 0] = op.remaining_ops/self.num_machine
+        #         self.op_fea[n, 1] = op.complete_ratio
+        #         self.op_fea[n, 2] = op.processing_time
+        #         self.op_fea[n, 3] = op.waiting_time
+        #         self.op_fea[n, 4:8] = op.node_status
+
         return self.observe(reward='utilization')
 
     def step(self, action=None,disrule_name=None,observe=True):
@@ -269,6 +274,12 @@ class JSSPSimulator(gym.Env, EzPickle):
             operation = self.job_manager[job_id][step_id]
             machine_id = operation.machine_id
             machine = self.machine_manager[machine_id]
+
+            if len(machine.done_ops) > 0:
+                pre_op = machine.done_ops[-1]
+                # self.graph.adj[operation.sur_id, pre_op.sur_id] = 1
+                # self.graph.adj[pre_op.sur_id, operation.sur_id] = 1
+                self.Adj[operation.sur_id, pre_op.sur_id] = 1
 
             machine.transit(self.global_time, operation)
             row, col = operation._id
@@ -408,25 +419,8 @@ class JSSPSimulator(gym.Env, EzPickle):
 
                 r = cur_ut - self.ut
                 self.ut = cur_ut
+            g = 0
 
-            # flag = False
-            # if flag:
-            #     g = self.job_manager.observe(detach_done=self.detach_done)
-            # else:
-            #     g = 0
-            # if flag:
-            #     if return_doable:
-            #         if self.use_surrogate_index:
-            #             do_ops_list, _ = self.get_doable_ops(return_list=True)
-            #             for n in g.nodes:
-            #                 if n in do_ops_list:
-            #                     job_id, op_id = self.job_manager.sur_index_dict[n]
-            #                     m_id = self.job_manager[job_id][op_id].machine_id
-            #                     g.nodes[n]['doable'] = True
-            #                     g.nodes[n]['machine'] = m_id
-            #                 else:
-            #                     g.nodes[n]['doable'] = False
-            #                     g.nodes[n]['machine'] = 0
 
             if return_doable:
                 if self.use_surrogate_index:
@@ -595,25 +589,6 @@ class JSSPSimulator(gym.Env, EzPickle):
         else:
             return fig, ax
 
-    def draw_gantt_chart(self, path, benchmark_name, max_x):
-        # Draw a gantt chart
-        self.job_manager.draw_gantt_chart(path, benchmark_name, max_x)
-
-    @staticmethod
-    def _sample_jssp_graph(m, n):
-        if not m % N_SEP == 0:
-            m = int(N_SEP * (m // N_SEP))
-            if m < N_SEP:
-                m = N_SEP
-        if not n % N_SEP == 0:
-            n = int(N_SEP * (n // N_SEP))
-            if n < N_SEP:
-                n = N_SEP
-        if m > n:
-            raise RuntimeError(" m should be smaller or equal to n ")
-
-        return jssp_sampling(m, n, 5, 100)
-        # return jssp_sampling(m, n, 1, 5)
 
     @classmethod
     def from_path(cls, jssp_path):
@@ -632,51 +607,6 @@ class JSSPSimulator(gym.Env, EzPickle):
         ms = np.stack(ms)
         ms = ms + 1
         prts = np.stack(prts)
-        # num_job, num_machine = ms.shape
-        # name = jssp_path.split('/')[-1].replace('.txt', '')
         return ms,prts
 
-#     @classmethod
-#     def from_TA_path(cls, pt_path, m_path, **kwargs):
-#         with open(pt_path) as f1:
-#             prts = []
-#             for l in f1:
-#                 l_split = l.split(SEP)
-#                 prt = [e for e in l_split if e != '']
-#                 if NEW in prt[-1]:
-#                     prt[-1] = prt[-1].split(NEW)[0]
-#                 prts.append(np.array(prt, dtype=float))
-#
-#         with open(m_path) as f2:
-#             ms = []
-#             for l in f2:
-#                 l_split = l.split(SEP)
-#                 m = [e for e in l_split if e != '']
-#                 if NEW in m[-1]:
-#                     m[-1] = m[-1].split(NEW)[0]
-#                 ms.append(np.array(m, dtype=int))
-#
-#         ms = np.stack(ms) - 1
-#         prts = np.stack(prts)
-#         num_job, num_machine = ms.shape
-#         name = pt_path.split('/')[-1].replace('_PT.txt', '')
-#
-#         return cls(num_machines=num_machine,
-#                    num_jobs=num_job,
-#                    name=name,
-#                    machine_matrix=ms,
-#                    processing_time_matrix=prts,
-#                    **kwargs)
-#
-#
-# class NodeProcessingTimeSimulator(JSSPSimulator):
-#     def reset(self):
-#         self.job_manager = NodeProcessingTimeJobManager(self.machine_matrix,
-#                                                         self.processing_time_matrix,
-#                                                         embedding_dim=self.embedding_dim,
-#                                                         use_surrogate_index=self.use_surrogate_index)
-#         self.machine_manager = NodeProcessingTimeMachineManager(self.machine_matrix,
-#                                                                 self.job_manager,
-#                                                                 # self.delay,
-#                                                                 self.verbose)
-#         self.global_time = 0  # -1 matters a lot
+

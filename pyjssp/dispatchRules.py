@@ -81,7 +81,7 @@ def dispatch_rule_func(env,machine,disrule_name):
                 op_remain_work = op_remain_work + temp_op.processing_time
             if most_work_rem < op_remain_work:
                 action = operation
-                most_work_rem = operation.remaining_ops
+                most_work_rem = op_remain_work
     elif disrule_name == "FDD/MWKR":
         min_ratio = float("inf")
         for op_id in machine.doable_ops_id:

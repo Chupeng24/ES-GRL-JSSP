@@ -91,31 +91,6 @@ class MachineManager:
         return all_machines_not_available_cond  # and all_machines_delayed_cond
 
 
-class NodeProcessingTimeMachineManager(MachineManager):
-
-    def __init__(self,
-                 machine_matrix,
-                 job_manager,
-                 # delay=True,
-                 verbose=False):
-
-        machine_matrix = machine_matrix.astype(int)
-
-        # Parse machine indices
-        machine_index = list(set(machine_matrix.flatten().tolist()))
-
-        # Global machines dict
-        self.machines = OrderedDict()
-        for m_id in machine_index:
-            job_ids, step_ids = np.where(machine_matrix == m_id)
-            possible_ops = []
-            for job_id, step_id in zip(job_ids, step_ids):
-                possible_ops.append(job_manager[job_id][step_id])
-            m_id += 1  # To make machine index starts from 1
-            # self.machines[m_id] = Machine(m_id, possible_ops, delay, verbose)
-            self.machines[m_id] = Machine(m_id, possible_ops, verbose)
-
-
 class Machine:
     def __init__(self, machine_id, possible_ops, verbose, proctime_std,
                  prac_proc_time_matrix, temp1, mbrk_Ag, brk_rep_time_table):
@@ -129,7 +104,6 @@ class Machine:
         self.done_ops = []
         self.num_done_ops = 0
         self.cost = 0
-        # self.delay = delay
         self.verbose = verbose
         self.proctime_std = proctime_std
         self.prac_proc_time_matrix = prac_proc_time_matrix

@@ -35,13 +35,14 @@ if __name__ == '__main__':
     np.random.seed(200)
     random.seed(200)
     for i in range(100):
-        n_m = 10
-        n_j = 10
+        n_m = 6
+        n_j = 6
         proctime_matrix,m_matrix= data_generator(n_j=n_j, n_m=n_m, low=configs.low, high=configs.high)
         vali_data3.append((proctime_matrix,m_matrix))
 
     env = JSSPSimulator(num_jobs=None, num_machines=None)
-    dispatching_rules_list = [None,"FIFO", "LIFO", "SPT", "LPT", "STPT", "LTPT", "LOR", "MOR", "MWKR", "FDD/MWKR"]
+    dispatching_rules_list = ["LIFO"]
+    # dispatching_rules_list = [None,"FIFO", "LIFO", "SPT", "LPT", "STPT", "LTPT", "LOR", "MOR", "MWKR", "FDD/MWKR"]
     # timer = Timer("spend time of scheduling all instance by one dispatching rule ")
     # dispatching_rules_list = [None]
     # with timer:

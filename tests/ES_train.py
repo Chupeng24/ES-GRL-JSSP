@@ -11,6 +11,7 @@ import random
 from agent_utils import *
 from mb_agg import *
 import pandas as pd
+import matplotlib.pyplot as plt
 
 # df = pd.read_csv('optim_makespan_of_random_gen_ins_600000_2022-06-07-11-43-40.csv', index_col=0)
 #
@@ -253,8 +254,10 @@ def main(torch_seed, other_seed):
     # create envs and validate instance data
     env = JSSPSimulator(num_jobs=None, num_machines=None)
     # test ppo trained network before ES_training
+    vali_list = []
     vali_result, ep_r = validate(vali_data3, ppo.policy)
     vali_result = vali_result.mean()
+    vali_list.append(vali_result)
     ep_r = ep_r.mean()
     # print('The validation quality is:', vali_result)
 
@@ -295,6 +298,8 @@ def main(torch_seed, other_seed):
         vali_result, ep_r = validate(vali_data3, ppo.policy)
         vali_result = vali_result.mean()
         ep_r = ep_r.mean()
+        vali_list.append(vali_result)
+
 
         writer.add_scalar("vali_result", vali_result, (i_update + 1) * 200)
         writer.add_scalar("ep_r", ep_r, (i_update + 1) * 200)
@@ -316,6 +321,16 @@ def main(torch_seed, other_seed):
         # writer.add_scalar("batch_episodes", len(batch_reward),
         #                   i_update)
         # writer.add_scalar("batch_steps", batch_steps, i_update)
+        print(i_update)
+        if i_update % 10 == 0:
+            plt.title("Training Curve")
+            plt.xlabel("Iteration")
+            plt.ylabel("Average Validation value")
+            plt.grid()
+            plt.plot(vali_list)
+            # plt.show()
+            plt.savefig(f'./ES_train_log/{record}.jpg')
+            plt.clf()
 
 
 if __name__ == "__main__":
